@@ -199,109 +199,134 @@
 	}
 </script>
 
-<div class="min-h-screen p-4 md:p-8">
-	<div class="max-w-4xl mx-auto space-y-6">
+<div
+	class="min-h-screen p-4 md:p-8 bg-linear-to-br from-purple-600/10 via-pink-500/10 to-orange-400/10 relative"
+>
+	<!-- Decorative background gradient -->
+	<div
+		class="absolute inset-0 bg-linear-to-br from-background/80 via-background/90 to-background pointer-events-none"
+	></div>
+
+	<div class="max-w-4xl mx-auto space-y-6 relative z-10">
 		<!-- Header -->
 		<div class="flex items-center justify-between">
-			<h1 class="text-3xl font-bold">Game Setup</h1>
+			<h1
+				class="text-3xl md:text-4xl font-bold bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent"
+				style="font-family: 'Righteous', sans-serif;"
+			>
+				Game Setup
+			</h1>
 			<Button variant="outline" onclick={() => goto('/')}>Back</Button>
 		</div>
 
 		<!-- Default Playlists -->
 		<div class="space-y-4">
-			<div>
-				<h2 class="text-2xl font-semibold mb-2">Default Playlists</h2>
-				<p class="text-sm text-muted-foreground">
+			<div
+				class="bg-card/50 backdrop-blur-sm rounded-lg p-4 md:p-6 border shadow-lg"
+			>
+				<h2 class="text-xl md:text-2xl font-semibold mb-2">
+					Default Playlists
+				</h2>
+				<p class="text-sm text-muted-foreground mb-4">
 					Select which curated playlists to include
 				</p>
-			</div>
 
-			<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-				{#each data.defaultPlaylists as playlist (playlist.id)}
-					<button
-						class="p-3 rounded-lg border transition-colors {selectedDefaults.includes(
-							playlist.id
-						)
-							? 'bg-primary text-primary-foreground border-primary'
-							: 'bg-card hover:bg-accent'}"
-						onclick={() => toggleDefault(playlist.id)}
-					>
-						<div class="font-medium text-sm">{playlist.name}</div>
-					</button>
-				{/each}
+				<div
+					class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3"
+				>
+					{#each data.defaultPlaylists as playlist (playlist.id)}
+						<button
+							class="p-3 md:p-4 rounded-lg border transition-all hover:scale-105 active:scale-95 {selectedDefaults.includes(
+								playlist.id
+							)
+								? 'bg-linear-to-br from-purple-600 to-pink-500 text-white border-purple-400 shadow-lg'
+								: 'bg-card hover:bg-accent'}"
+							onclick={() => toggleDefault(playlist.id)}
+						>
+							<div class="font-medium text-sm md:text-base">
+								{playlist.name}
+							</div>
+						</button>
+					{/each}
+				</div>
 			</div>
 		</div>
 
 		<!-- Custom Playlists -->
 		<div class="space-y-4">
-			<div>
-				<h2 class="text-2xl font-semibold mb-2">Custom Playlists</h2>
-				<p class="text-sm text-muted-foreground">
+			<div
+				class="bg-card/50 backdrop-blur-sm rounded-lg p-4 md:p-6 border shadow-lg"
+			>
+				<h2 class="text-xl md:text-2xl font-semibold mb-2">Custom Playlists</h2>
+				<p class="text-sm text-muted-foreground mb-4">
 					Add your own Spotify playlists
 				</p>
-			</div>
 
-			<form
-				class="space-y-2"
-				onsubmit={(e) => {
-					e.preventDefault();
-					addCustomPlaylist();
-				}}
-			>
-				<Label for="playlist-input">Spotify Playlist URI or URL</Label>
-				<div class="flex gap-2">
-					<Input
-						id="playlist-input"
-						bind:value={playlistInput}
-						placeholder="spotify:playlist:... or https://open.spotify.com/playlist/..."
-						class="flex-1"
-					/>
-					<Button
-						type="submit"
-						disabled={addingPlaylist || !playlistInput.trim()}
-					>
-						{addingPlaylist ? 'Adding...' : 'Add'}
-					</Button>
-				</div>
-				{#if errorMessage}
-					<p class="text-sm text-destructive">{errorMessage}</p>
-				{/if}
-			</form>
-
-			{#if customPlaylists.length > 0}
-				<div class="space-y-2">
-					{#each customPlaylists as playlist (playlist.id)}
-						<div
-							class="flex items-center justify-between p-3 rounded-lg border bg-card"
+				<form
+					class="space-y-2"
+					onsubmit={(e) => {
+						e.preventDefault();
+						addCustomPlaylist();
+					}}
+				>
+					<Label for="playlist-input">Spotify Playlist URI or URL</Label>
+					<div class="flex flex-col sm:flex-row gap-2">
+						<Input
+							id="playlist-input"
+							bind:value={playlistInput}
+							placeholder="spotify:playlist:... or https://open.spotify.com/playlist/..."
+							class="flex-1"
+						/>
+						<Button
+							type="submit"
+							disabled={addingPlaylist || !playlistInput.trim()}
+							class="w-full sm:w-auto"
 						>
-							<div class="flex flex-col">
-								<span class="font-medium">{playlist.name}</span>
-								<span class="text-xs text-muted-foreground">
-									{playlist.trackCount}
-									{playlist.trackCount === 1 ? 'song' : 'songs'}
-								</span>
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
-								onclick={() => removePlaylist(playlist.id)}
+							{addingPlaylist ? 'Adding...' : 'Add'}
+						</Button>
+					</div>
+					{#if errorMessage}
+						<p class="text-sm text-destructive">{errorMessage}</p>
+					{/if}
+				</form>
+
+				{#if customPlaylists.length > 0}
+					<div class="space-y-2 mt-4">
+						{#each customPlaylists as playlist (playlist.id)}
+							<div
+								class="flex items-center justify-between p-3 rounded-lg border bg-card/80 hover:bg-card transition-colors"
 							>
-								Remove
-							</Button>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-muted-foreground italic">
-					No custom playlists added yet
-				</p>
-			{/if}
+								<div class="flex flex-col min-w-0 flex-1 mr-2">
+									<span class="font-medium truncate">{playlist.name}</span>
+									<span class="text-xs text-muted-foreground">
+										{playlist.trackCount}
+										{playlist.trackCount === 1 ? 'song' : 'songs'}
+									</span>
+								</div>
+								<Button
+									variant="ghost"
+									size="sm"
+									onclick={() => removePlaylist(playlist.id)}
+								>
+									Remove
+								</Button>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="text-sm text-muted-foreground italic mt-4">
+						No custom playlists added yet
+					</p>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Start Button -->
 		<div class="pt-4 space-y-3">
 			{#if totalSelectedPlaylists > 0}
-				<div class="text-center text-sm text-muted-foreground">
+				<div
+					class="text-center text-sm md:text-base text-muted-foreground bg-card/30 backdrop-blur-sm rounded-lg p-3 border"
+				>
 					{#if loadingTrackCounts}
 						<p>
 							{totalSelectedPlaylists} playlist{totalSelectedPlaylists === 1
@@ -309,7 +334,7 @@
 								: 's'} selected • Loading track counts...
 						</p>
 					{:else}
-						<p>
+						<p class="font-medium">
 							{totalSelectedPlaylists} playlist{totalSelectedPlaylists === 1
 								? ''
 								: 's'} selected
@@ -322,8 +347,12 @@
 					{/if}
 				</div>
 			{/if}
-			<Button size="lg" class="w-full text-lg" onclick={startGame}>
-				Start Playing
+			<Button
+				size="lg"
+				class="w-full text-base md:text-lg py-6 bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
+				onclick={startGame}
+			>
+				🎵 Start Playing
 			</Button>
 		</div>
 	</div>
