@@ -22,6 +22,13 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	const storedState = event.cookies.get('spotify_oauth_state') ?? null;
 	const codeVerifier = event.cookies.get('spotify_code_verifier') ?? null;
 
+	console.log('OAuth callback - State from URL:', state);
+	console.log('OAuth callback - State from cookie:', storedState);
+
+	// Clear cookies immediately
+	event.cookies.delete('spotify_oauth_state', { path: '/' });
+	event.cookies.delete('spotify_code_verifier', { path: '/' });
+
 	if (
 		!code ||
 		!state ||
@@ -49,21 +56,22 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		const spotifyUser: SpotifyUser = await spotifyUserResponse.json();
 
 		// Check if account already exists
-		const existingAccount = await db.query.oauthAccounts.findFirst({
-			where: and(
-				eq(oauthAccounts.providerId, 'spotify'),
-				eq(oauthAccounts.providerUserId, spotifyUser.id)
-			),
-			with: {
-				user: true
-			}
-		});
+		const existingAccount = await db
+			.select()
+			.from(oauthAccounts)
+			.where(
+				and(
+					eq(oauthAccounts.providerId, 'spotify'),
+					eq(oauthAccounts.providerUserId, spotifyUser.id)
+				)
+			)
+			.limit(1);
 
 		let userId: string;
 
-		if (existingAccount) {
+		if (existingAccount.length > 0) {
 			// Update existing user's tokens
-			userId = existingAccount.userId;
+			userId = existingAccount[0].userId;
 
 			// Update or insert Spotify tokens
 			await db
@@ -91,9 +99,9 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			const [newUser] = await db
 				.insert(users)
 				.values({
+					spotifyId: spotifyUser.id,
+					displayName: spotifyUser.display_name,
 					email: spotifyUser.email,
-					emailVerified: true, // Spotify emails are verified
-					name: spotifyUser.display_name,
 					avatar: spotifyUser.images?.[0]?.url ?? null
 				})
 				.returning();
@@ -126,7 +134,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		return new Response(null, {
 			status: 302,
 			headers: {
-				Location: '/dashboard'
+				Location: '/play'
 			}
 		});
 	} catch (e) {

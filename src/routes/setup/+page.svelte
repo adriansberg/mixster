@@ -93,6 +93,24 @@
 			return;
 		}
 
+		// Check if user is authenticated
+		if (!data.isAuthenticated) {
+			// Save session data before redirecting to login
+			const sessionId = nanoid();
+			localStorage.setItem('shitster_session_id', sessionId);
+			localStorage.setItem(
+				'shitster_selected_defaults',
+				JSON.stringify(selectedDefaults)
+			);
+			localStorage.setItem(
+				'shitster_custom_playlists',
+				JSON.stringify(customPlaylists)
+			);
+			// Redirect to Spotify login
+			goto('/auth/login/spotify');
+			return;
+		}
+
 		const sessionId = nanoid();
 		localStorage.setItem('shitster_session_id', sessionId);
 		localStorage.setItem(

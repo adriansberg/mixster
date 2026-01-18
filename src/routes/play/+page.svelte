@@ -94,6 +94,12 @@
 	async function getAccessToken(): Promise<string | null> {
 		try {
 			const response = await fetch('/api/spotify/token');
+			if (response.status === 401) {
+				// Not authenticated - redirect to setup/login
+				errorMessage = 'Please log in with Spotify to play music';
+				setTimeout(() => goto('/setup'), 2000);
+				return null;
+			}
 			if (!response.ok) return null;
 			const data = await response.json();
 			return data.accessToken;
@@ -108,12 +114,18 @@
 		isRevealed = false;
 
 		try {
+			// Get custom playlists from localStorage
+			const storedCustom = localStorage.getItem('shitster_custom_playlists');
+			const customPlaylists = storedCustom ? JSON.parse(storedCustom) : [];
+			const customPlaylistUris = customPlaylists.map((p: any) => p.uri);
+
 			const response = await fetch('/api/spotify/songs/random', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					sessionId,
-					selectedDefaultPlaylists: selectedDefaults
+					selectedDefaultPlaylists: selectedDefaults,
+					customPlaylistUris
 				})
 			});
 

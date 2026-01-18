@@ -5,10 +5,9 @@ export const users = pgTable('users', {
 	id: text('id')
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	email: text('email').notNull().unique(),
-	emailVerified: boolean('email_verified').notNull().default(false),
-	passwordHash: text('password_hash'),
-	name: text('name'),
+	spotifyId: text('spotify_id').notNull().unique(),
+	displayName: text('display_name'),
+	email: text('email'),
 	avatar: text('avatar'),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.notNull()
@@ -28,30 +27,6 @@ export const sessions = pgTable('sessions', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
 });
 
-export const emailVerificationCodes = pgTable('email_verification_codes', {
-	id: text('id')
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-	userId: text('user_id')
-		.notNull()
-		.references(() => users.id, { onDelete: 'cascade' })
-		.unique(),
-	email: text('email').notNull(),
-	code: text('code').notNull(),
-	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
-});
-
-export const passwordResetTokens = pgTable('password_reset_tokens', {
-	id: text('id')
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-	userId: text('user_id')
-		.notNull()
-		.references(() => users.id, { onDelete: 'cascade' })
-		.unique(),
-	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
-});
-
 export const oauthAccounts = pgTable('oauth_accounts', {
 	providerId: text('provider_id').notNull(), // 'spotify'
 	providerUserId: text('provider_user_id').notNull(),
@@ -68,6 +43,9 @@ export const spotifyTokens = pgTable('spotify_tokens', {
 	refreshToken: text('refresh_token').notNull(),
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
 });
+
+// Note: userPlaylists table is no longer used - playlists stored in localStorage
+// Keeping for potential future use with authenticated custom playlists
 
 export const userPlaylists = pgTable('user_playlists', {
 	id: text('id')

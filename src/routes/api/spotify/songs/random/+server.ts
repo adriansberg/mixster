@@ -15,29 +15,24 @@ export async function POST(event: RequestEvent) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	const { sessionId, selectedDefaultPlaylists = [] } =
-		await event.request.json();
+	const {
+		sessionId,
+		selectedDefaultPlaylists = [],
+		customPlaylistUris = []
+	} = await event.request.json();
 
 	if (!sessionId || typeof sessionId !== 'string') {
 		return json({ error: 'Invalid session ID' }, { status: 400 });
 	}
 
-	// Get active user playlists
-	const activePlaylists = await db.query.userPlaylists.findMany({
-		where: and(
-			eq(userPlaylists.userId, user.id),
-			eq(userPlaylists.isActive, true)
-		)
-	});
-
-	// Combine with selected default playlists
+	// Combine default playlists and custom playlists from localStorage
 	const allPlaylistUris = [
-		...activePlaylists.map((p) => p.spotifyPlaylistUri),
 		...selectedDefaultPlaylists
 			.map(
 				(id: string) => defaultPlaylists.find((p) => p.id === id)?.spotifyUri
 			)
-			.filter(Boolean)
+			.filter(Boolean),
+		...customPlaylistUris
 	];
 
 	if (allPlaylistUris.length === 0) {

@@ -104,9 +104,8 @@ export interface Session {
 
 export interface User {
 	id: string;
-	email: string;
-	emailVerified: boolean;
-	passwordHash: string | null;
-	name: string | null;
+	spotifyId: string;
+	displayName: string | null;
+	email: string | null;
 	avatar: string | null;
 }

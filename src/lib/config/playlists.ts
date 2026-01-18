@@ -68,7 +68,7 @@ export const defaultPlaylists: DefaultPlaylist[] = [
 	{
 		id: 'rock',
 		name: 'Rock Classics',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DWXRqgorJj26U',
+		spotifyUri: 'spotify:playlist:0JfAnVGfbJXOsVlwsACNar',
 		category: 'genre',
 		description: 'Timeless rock classics'
 	},

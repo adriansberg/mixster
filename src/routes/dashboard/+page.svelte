@@ -4,9 +4,10 @@
 
 	type User = {
 		id: string;
-		email: string;
-		name: string | null;
-		emailVerified: boolean;
+		spotifyId: string;
+		displayName: string | null;
+		email: string | null;
+		avatar: string | null;
 	};
 
 	let { data }: { data: { user: User } } = $props();
@@ -26,36 +27,19 @@
 
 		<div class="bg-card p-6 rounded-lg border space-y-4">
 			<h2 class="text-xl font-semibold mb-4">
-				Welcome, {data.user.name || data.user.email}!
+				Welcome, {data.user.displayName || 'there'}!
 			</h2>
 			<p class="text-muted-foreground">
 				This is your dashboard. Welcome to Shitster!
 			</p>
 
 			<div class="pt-4">
-				<a href="/game">
+				<a href="/">
 					<Button size="lg" class="w-full sm:w-auto">
 						🎵 Play Shitster Game
 					</Button>
 				</a>
 			</div>
-
-			{#if !data.user.emailVerified}
-				<div
-					class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded"
-				>
-					<p class="text-sm text-yellow-800 dark:text-yellow-200">
-						Please verify your email address. Check your inbox for the
-						verification code.
-					</p>
-					<a
-						href="/auth/verify-email"
-						class="text-sm text-primary hover:underline mt-2 inline-block"
-					>
-						Enter verification code →
-					</a>
-				</div>
-			{/if}
 		</div>
 	</div>
 </div>
