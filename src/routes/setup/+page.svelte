@@ -8,12 +8,27 @@
 	let { data } = $props();
 
 	let selectedDefaults = $state<string[]>([]);
+	let customPlaylists = $state<
+		Array<{ id: string; name: string; uri: string }>
+	>([]);
 	let playlistInput = $state('');
 	let addingPlaylist = $state(false);
 	let errorMessage = $state('');
 
 	const decades = data.defaultPlaylists.filter((p) => p.category === 'decade');
 	const genres = data.defaultPlaylists.filter((p) => p.category === 'genre');
+
+	// Load custom playlists from localStorage on mount
+	if (typeof window !== 'undefined') {
+		const stored = localStorage.getItem('shitster_custom_playlists');
+		if (stored) {
+			try {
+				customPlaylists = JSON.parse(stored);
+			} catch {
+				// Ignore parse errors
+			}
+		}
+	}
 
 	function toggleDefault(id: string) {
 		if (selectedDefaults.includes(id)) {
@@ -30,7 +45,7 @@
 		addingPlaylist = true;
 
 		try {
-			const response = await fetch('/api/spotify/playlist/add', {
+			const response = await fetch('/api/spotify/playlist/validate', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ playlistInput: playlistInput.trim() })
@@ -43,7 +58,18 @@
 				return;
 			}
 
-			window.location.reload();
+			// Add to localStorage
+			const newPlaylist = {
+				id: nanoid(),
+				name: result.name,
+				uri: result.uri
+			};
+			customPlaylists = [...customPlaylists, newPlaylist];
+			localStorage.setItem(
+				'shitster_custom_playlists',
+				JSON.stringify(customPlaylists)
+			);
+			playlistInput = '';
 		} catch {
 			errorMessage = 'Failed to add playlist';
 		} finally {
@@ -51,24 +77,16 @@
 		}
 	}
 
-	async function removePlaylist(playlistId: string) {
-		try {
-			await fetch('/api/spotify/playlists', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ playlistId })
-			});
-
-			window.location.reload();
-		} catch {
-			console.error('Failed to remove playlist');
-		}
+	function removePlaylist(playlistId: string) {
+		customPlaylists = customPlaylists.filter((p) => p.id !== playlistId);
+		localStorage.setItem(
+			'shitster_custom_playlists',
+			JSON.stringify(customPlaylists)
+		);
 	}
 
 	function startGame() {
-		const totalSelected =
-			selectedDefaults.length +
-			data.customPlaylists.filter((p) => p.isActive).length;
+		const totalSelected = selectedDefaults.length + customPlaylists.length;
 
 		if (totalSelected === 0) {
 			errorMessage = 'Please select at least one playlist';
@@ -80,6 +98,10 @@
 		localStorage.setItem(
 			'shitster_selected_defaults',
 			JSON.stringify(selectedDefaults)
+		);
+		localStorage.setItem(
+			'shitster_custom_playlists',
+			JSON.stringify(customPlaylists)
 		);
 
 		goto('/play');
@@ -151,81 +173,48 @@
 				</p>
 			</div>
 
-			{#if !data.hasUser}
-				<div class="p-4 rounded-lg border bg-muted/50">
-					<p class="text-sm text-muted-foreground mb-2">
-						Connect with Spotify to add custom playlists
-					</p>
+			<div class="space-y-2">
+				<Label for="playlist-input">Spotify Playlist URI or URL</Label>
+				<div class="flex gap-2">
+					<Input
+						id="playlist-input"
+						bind:value={playlistInput}
+						placeholder="spotify:playlist:... or https://open.spotify.com/playlist/..."
+						class="flex-1"
+					/>
 					<Button
-						onclick={() => goto('/auth/login/spotify')}
-						variant="outline"
-						size="sm"
+						onclick={addCustomPlaylist}
+						disabled={addingPlaylist || !playlistInput.trim()}
 					>
-						Connect Spotify
+						{addingPlaylist ? 'Adding...' : 'Add'}
 					</Button>
 				</div>
-			{:else}
-				<div class="space-y-2">
-					<Label for="playlist-input">Spotify Playlist URI or URL</Label>
-					<div class="flex gap-2">
-						<Input
-							id="playlist-input"
-							bind:value={playlistInput}
-							placeholder="spotify:playlist:... or https://open.spotify.com/playlist/..."
-							class="flex-1"
-						/>
-						<Button
-							onclick={addCustomPlaylist}
-							disabled={addingPlaylist || !playlistInput.trim()}
-						>
-							{addingPlaylist ? 'Adding...' : 'Add'}
-						</Button>
-					</div>
-					{#if errorMessage}
-						<p class="text-sm text-destructive">{errorMessage}</p>
-					{/if}
-				</div>
-
-				{#if data.customPlaylists.length > 0}
-					<div class="space-y-2">
-						{#each data.customPlaylists as playlist (playlist.id)}
-							<div
-								class="flex items-center justify-between p-3 rounded-lg border bg-card"
-							>
-								<div class="flex items-center gap-3">
-									<input
-										type="checkbox"
-										checked={playlist.isActive}
-										onchange={async (e) => {
-											const target = e.target as HTMLInputElement;
-											await fetch('/api/spotify/playlist/toggle', {
-												method: 'PATCH',
-												headers: { 'Content-Type': 'application/json' },
-												body: JSON.stringify({
-													playlistId: playlist.id,
-													isActive: target.checked
-												})
-											});
-										}}
-										class="w-4 h-4"
-									/>
-									<span class="font-medium">{playlist.name}</span>
-								</div>
-								<Button
-									variant="ghost"
-									size="sm"
-									onclick={() => removePlaylist(playlist.id)}
-								>
-									Remove
-								</Button>
-							</div>
-						{/each}
-					</div>
-				{:else}
-					<p class="text-sm text-muted-foreground italic">
-						No custom playlists added yet
-					</p>
+				{#if errorMessage}
+					<p class="text-sm text-destructive">{errorMessage}</p>
 				{/if}
+			</div>
+
+			{#if customPlaylists.length > 0}
+				<div class="space-y-2">
+					{#each customPlaylists as playlist (playlist.id)}
+						<div
+							class="flex items-center justify-between p-3 rounded-lg border bg-card"
+						>
+							<span class="font-medium">{playlist.name}</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								onclick={() => removePlaylist(playlist.id)}
+							>
+								Remove
+							</Button>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground italic">
+					No custom playlists added yet
+				</p>
 			{/if}
 		</div>
 
