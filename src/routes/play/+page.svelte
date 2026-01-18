@@ -3,9 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let player: any = $state(null);
 	let deviceId: string = $state('');
+	let availableDevices: SpotifyDevice[] = $state([]);
 	let isReady = $state(false);
 	let currentTrack: Track | null = $state(null);
 	let isRevealed = $state(false);
@@ -14,6 +13,7 @@
 	let errorMessage = $state('');
 	let sessionId = $state('');
 	let selectedDefaults: string[] = $state([]);
+	let playbackCheckInterval: number | null = $state(null);
 
 	interface Track {
 		id: string;
@@ -21,6 +21,13 @@
 		artists: string[];
 		releaseYear: number;
 		albumArt?: string;
+	}
+
+	interface SpotifyDevice {
+		id: string;
+		name: string;
+		type: string;
+		is_active: boolean;
 	}
 
 	onMount(() => {
@@ -34,65 +41,80 @@
 			return;
 		}
 
-		// Load Spotify Web Playback SDK
-		const script = document.createElement('script');
-		script.src = 'https://sdk.scdn.co/spotify-player.js';
-		script.async = true;
-		document.body.appendChild(script);
+		// Get available Spotify devices
+		getAvailableDevices();
 
-		// @ts-expect-error - Spotify SDK callback
-		window.onSpotifyWebPlaybackSDKReady = () => {
-			initializePlayer();
-		};
+		// Start polling for playback state
+		playbackCheckInterval = window.setInterval(checkPlaybackState, 2000);
 
 		return () => {
-			if (player) {
-				player.disconnect();
+			if (playbackCheckInterval) {
+				clearInterval(playbackCheckInterval);
 			}
 		};
 	});
 
-	async function initializePlayer() {
+	async function getAvailableDevices() {
 		const token = await getAccessToken();
+		if (!token) return;
 
-		if (!token) {
-			errorMessage = 'Failed to get Spotify access token';
-			return;
+		try {
+			const response = await fetch(
+				'https://api.spotify.com/v1/me/player/devices',
+				{
+					headers: { Authorization: `Bearer ${token}` }
+				}
+			);
+
+			if (response.ok) {
+				const data = await response.json();
+				availableDevices = data.devices;
+
+				// Find an active device or use the first available one
+				const activeDevice = availableDevices.find((d) => d.is_active);
+				if (activeDevice) {
+					deviceId = activeDevice.id;
+					isReady = true;
+				} else if (availableDevices.length > 0) {
+					deviceId = availableDevices[0].id;
+					isReady = true;
+				} else {
+					errorMessage =
+						'No Spotify devices found. Please open Spotify on your phone, computer, or other device.';
+				}
+			}
+		} catch (error) {
+			console.error('Failed to get devices:', error);
+			errorMessage = 'Failed to get Spotify devices';
 		}
+	}
 
-		// @ts-expect-error - Spotify SDK
-		player = new window.Spotify.Player({
-			name: 'Shitster Game',
-			getOAuthToken: (cb: (token: string) => void) => {
-				cb(token);
-			},
-			volume: 0.5
-		});
+	async function checkPlaybackState() {
+		const token = await getAccessToken();
+		if (!token) return;
 
-		player.addListener('ready', ({ device_id }: { device_id: string }) => {
-			console.log('Ready with Device ID', device_id);
-			deviceId = device_id;
-			isReady = true;
-		});
+		try {
+			const response = await fetch('https://api.spotify.com/v1/me/player', {
+				headers: { Authorization: `Bearer ${token}` }
+			});
 
-		player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
-			console.log('Device ID has gone offline', device_id);
-			isReady = false;
-		});
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		player.addListener('playback_error', ({ message }: any) => {
-			console.error('Playback error:', message);
-		});
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		player.addListener('player_state_changed', (state: any) => {
-			if (!state) {
+			if (response.status === 204) {
+				// No active playback
 				return;
 			}
-			isPlaying = !state.paused;
-		});
 
-		player.connect();
+			if (response.ok) {
+				const data = await response.json();
+				isPlaying = data.is_playing;
+
+				// Update device if it changed
+				if (data.device && data.device.id !== deviceId) {
+					deviceId = data.device.id;
+				}
+			}
+		} catch (error) {
+			console.error('Failed to check playback state:', error);
+		}
 	}
 
 	async function getAccessToken(): Promise<string | null> {
@@ -184,22 +206,51 @@
 
 	function revealSong() {
 		isRevealed = true;
-		if (player) {
-			player.pause();
-		}
+		pausePlayback();
 	}
 
 	async function resumePlayback() {
-		if (player) {
-			console.log('Calling player.resume()');
-			await player.resume();
+		const token = await getAccessToken();
+		if (!token) {
+			errorMessage = 'Failed to get access token';
+			return;
+		}
+
+		try {
+			const url = deviceId
+				? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
+				: 'https://api.spotify.com/v1/me/player/play';
+
+			await fetch(url, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`
+				}
+			});
+			isPlaying = true;
+		} catch {
+			errorMessage = 'Failed to resume playback';
 		}
 	}
 
 	async function pausePlayback() {
-		if (player) {
-			console.log('Calling player.pause()');
-			await player.pause();
+		const token = await getAccessToken();
+		if (!token) {
+			errorMessage = 'Failed to get access token';
+			return;
+		}
+
+		try {
+			await fetch('https://api.spotify.com/v1/me/player/pause', {
+				method: 'PUT',
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			isPlaying = false;
+		} catch {
+			errorMessage = 'Failed to pause playback';
 		}
 	}
 
@@ -239,15 +290,48 @@
 		<!-- Player Status -->
 		<div class="text-center">
 			{#if !isReady}
-				<div class="p-4 rounded-lg bg-muted">
-					<p class="text-muted-foreground">Initializing Spotify player...</p>
+				<div class="p-4 rounded-lg bg-muted space-y-4">
+					<p class="text-muted-foreground">Looking for Spotify devices...</p>
+					{#if availableDevices.length > 0}
+						<div class="space-y-2">
+							<p class="text-sm">Select a device to play on:</p>
+							<div class="flex flex-col gap-2">
+								{#each availableDevices as device (device.id)}
+									<Button
+										variant={device.id === deviceId ? 'default' : 'outline'}
+										onclick={() => {
+											deviceId = device.id;
+											isReady = true;
+											errorMessage = '';
+										}}
+									>
+										{device.name} ({device.type})
+										{device.is_active ? '🎵' : ''}
+									</Button>
+								{/each}
+							</div>
+						</div>
+					{:else}
+						<Button size="sm" onclick={getAvailableDevices}
+							>Refresh Devices</Button
+						>
+					{/if}
 				</div>
 			{:else if errorMessage}
-				<div class="p-4 rounded-lg bg-destructive/10 border border-destructive">
+				<div
+					class="p-4 rounded-lg bg-destructive/10 border border-destructive space-y-2"
+				>
 					<p class="text-destructive">{errorMessage}</p>
+					<Button size="sm" variant="outline" onclick={getAvailableDevices}>
+						Retry
+					</Button>
 				</div>
 			{:else if !currentTrack}
 				<div class="p-8 rounded-lg border bg-card space-y-4">
+					<p class="text-sm text-muted-foreground">
+						Playing on: {availableDevices.find((d) => d.id === deviceId)
+							?.name || 'Spotify Device'}
+					</p>
 					<p class="text-lg text-muted-foreground">Ready to play!</p>
 					<Button size="lg" onclick={getNextSong} disabled={loading}>
 						{loading ? 'Loading...' : 'Start First Song'}
