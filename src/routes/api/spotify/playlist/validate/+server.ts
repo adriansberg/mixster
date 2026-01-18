@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Fetch playlist details
 		const playlistResponse = await fetch(
-			`https://api.spotify.com/v1/playlists/${playlistId}?fields=name,id,uri`,
+			`https://api.spotify.com/v1/playlists/${playlistId}?fields=name,id,uri,tracks.total`,
 			{
 				headers: {
 					Authorization: `Bearer ${access_token}`
@@ -66,7 +66,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		return json({
 			name: playlist.name,
-			uri: playlist.uri
+			uri: playlist.uri,
+			trackCount: playlist.tracks?.total || 0
 		});
 	} catch (error) {
 		console.error('Error validating playlist:', error);

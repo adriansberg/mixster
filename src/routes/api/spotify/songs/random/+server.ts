@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { and, eq, gte } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
-import { playedSongs, userPlaylists } from '$lib/server/db/schema';
+import { playedSongs } from '$lib/server/db/schema';
 import { spotifyFetch } from '$lib/server/spotify';
 import { defaultPlaylists } from '$lib/config/playlists';
 

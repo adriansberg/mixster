@@ -7,9 +7,11 @@
 
 	let { data } = $props();
 
-	let selectedDefaults = $state<string[]>([]);
+	let selectedDefaults = $state<string[]>(
+		data.defaultPlaylists.map((p) => p.id)
+	);
 	let customPlaylists = $state<
-		Array<{ id: string; name: string; uri: string }>
+		Array<{ id: string; name: string; uri: string; trackCount: number }>
 	>([]);
 	let playlistInput = $state('');
 	let addingPlaylist = $state(false);
@@ -62,7 +64,8 @@
 			const newPlaylist = {
 				id: nanoid(),
 				name: result.name,
-				uri: result.uri
+				uri: result.uri,
+				trackCount: result.trackCount || 0
 			};
 			customPlaylists = [...customPlaylists, newPlaylist];
 			localStorage.setItem(
@@ -191,7 +194,13 @@
 				</p>
 			</div>
 
-			<div class="space-y-2">
+			<form
+				class="space-y-2"
+				onsubmit={(e) => {
+					e.preventDefault();
+					addCustomPlaylist();
+				}}
+			>
 				<Label for="playlist-input">Spotify Playlist URI or URL</Label>
 				<div class="flex gap-2">
 					<Input
@@ -201,7 +210,7 @@
 						class="flex-1"
 					/>
 					<Button
-						onclick={addCustomPlaylist}
+						type="submit"
 						disabled={addingPlaylist || !playlistInput.trim()}
 					>
 						{addingPlaylist ? 'Adding...' : 'Add'}
@@ -210,7 +219,7 @@
 				{#if errorMessage}
 					<p class="text-sm text-destructive">{errorMessage}</p>
 				{/if}
-			</div>
+			</form>
 
 			{#if customPlaylists.length > 0}
 				<div class="space-y-2">
@@ -218,7 +227,13 @@
 						<div
 							class="flex items-center justify-between p-3 rounded-lg border bg-card"
 						>
-							<span class="font-medium">{playlist.name}</span>
+							<div class="flex flex-col">
+								<span class="font-medium">{playlist.name}</span>
+								<span class="text-xs text-muted-foreground">
+									{playlist.trackCount}
+									{playlist.trackCount === 1 ? 'song' : 'songs'}
+								</span>
+							</div>
 							<Button
 								variant="ghost"
 								size="sm"
