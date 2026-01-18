@@ -9,19 +9,9 @@ const envSchema = z.object({
 	// Auth
 	AUTH_SECRET: z.string().min(32),
 
-	// OAuth - Google
-	GOOGLE_CLIENT_ID: z.string().optional(),
-	GOOGLE_CLIENT_SECRET: z.string().optional(),
-
-	// OAuth - GitHub
-	GITHUB_CLIENT_ID: z.string().optional(),
-	GITHUB_CLIENT_SECRET: z.string().optional(),
-
-	// OAuth - Apple
-	APPLE_CLIENT_ID: z.string().optional(),
-	APPLE_TEAM_ID: z.string().optional(),
-	APPLE_KEY_ID: z.string().optional(),
-	APPLE_PRIVATE_KEY: z.string().optional(),
+	// OAuth - Spotify
+	SPOTIFY_CLIENT_ID: z.string().optional(),
+	SPOTIFY_CLIENT_SECRET: z.string().optional(),
 
 	// Email - Resend
 	RESEND_API_KEY: z.string().optional(),

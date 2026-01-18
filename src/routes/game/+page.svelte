@@ -1,16 +1,30 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
+
+	let { data } = $props();
+
+	async function handlePlayGame() {
+		// Check if user has Spotify connected
+		if (!data.hasSpotify) {
+			// Redirect to Spotify login
+			window.location.href = '/auth/login/spotify';
+			return;
+		}
+
+		// Go to game setup
+		goto('/game/setup');
+	}
 </script>
 
 <div
-	class="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-background via-background to-primary/5"
+	class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5"
 >
 	<div class="max-w-2xl w-full text-center space-y-8">
 		<!-- Logo/Title -->
 		<div class="space-y-4">
 			<h1
-				class="text-6xl md:text-8xl font-bold bg-linear-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"
+				class="text-6xl md:text-8xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"
 			>
 				🎵 Shitster
 			</h1>
@@ -55,12 +69,21 @@
 
 		<!-- Action Buttons -->
 		<div class="flex flex-col sm:flex-row gap-4 justify-center">
+			<Button size="lg" class="text-lg px-8 py-6" onclick={handlePlayGame}>
+				{#if data.hasSpotify}
+					Start Game
+				{:else}
+					Connect Spotify & Play
+				{/if}
+			</Button>
+
 			<Button
+				variant="outline"
 				size="lg"
 				class="text-lg px-8 py-6"
-				onclick={() => goto('/setup')}
+				onclick={() => goto('/dashboard')}
 			>
-				Start Game
+				Back to Dashboard
 			</Button>
 		</div>
 	</div>

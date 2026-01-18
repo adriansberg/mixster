@@ -24,13 +24,21 @@
 			</div>
 		</div>
 
-		<div class="bg-card p-6 rounded-lg border">
+		<div class="bg-card p-6 rounded-lg border space-y-4">
 			<h2 class="text-xl font-semibold mb-4">
 				Welcome, {data.user.name || data.user.email}!
 			</h2>
 			<p class="text-muted-foreground">
 				This is your dashboard. Welcome to Shitster!
 			</p>
+
+			<div class="pt-4">
+				<a href="/game">
+					<Button size="lg" class="w-full sm:w-auto">
+						🎵 Play Shitster Game
+					</Button>
+				</a>
+			</div>
 
 			{#if !data.user.emailVerified}
 				<div
