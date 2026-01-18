@@ -304,12 +304,24 @@
 	onfocus={() => (windowFocused = true)}
 />
 
-<div class="min-h-screen p-4 md:p-8">
-	<div class="max-w-2xl mx-auto space-y-6">
+<div
+	class="min-h-screen p-4 md:p-8 bg-linear-to-br from-purple-600/10 via-pink-500/10 to-orange-400/10 relative"
+>
+	<!-- Decorative background gradient -->
+	<div
+		class="absolute inset-0 bg-linear-to-br from-background/80 via-background/90 to-background pointer-events-none"
+	></div>
+
+	<div class="max-w-2xl mx-auto space-y-6 relative z-10">
 		<!-- Header -->
-		<div class="flex items-center justify-between">
-			<h1 class="text-3xl font-bold">🎵 Shitster</h1>
-			<div class="flex gap-2">
+		<div class="flex items-center justify-center sm:justify-between">
+			<h1
+				class="text-3xl md:text-4xl font-bold bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent"
+				style="font-family: 'Monoton', sans-serif;"
+			>
+				shitster
+			</h1>
+			<div class="hidden sm:flex gap-2">
 				<Button variant="outline" size="sm" onclick={clearHistory}>
 					Clear History
 				</Button>
@@ -320,7 +332,9 @@
 		<!-- Player Status -->
 		<div class="text-center">
 			{#if !isReady}
-				<div class="p-4 rounded-lg bg-muted space-y-4">
+				<div
+					class="p-4 md:p-6 rounded-lg bg-card/50 backdrop-blur-sm border shadow-lg space-y-4"
+				>
 					<p class="text-muted-foreground">Looking for Spotify devices...</p>
 					{#if availableDevices.length > 0}
 						<div class="space-y-2">
@@ -349,7 +363,7 @@
 				</div>
 			{:else if errorMessage}
 				<div
-					class="p-4 rounded-lg bg-destructive/10 border border-destructive space-y-2"
+					class="p-4 md:p-6 rounded-lg bg-destructive/10 border border-destructive space-y-2"
 				>
 					<p class="text-destructive">{errorMessage}</p>
 					<Button size="sm" variant="outline" onclick={getAvailableDevices}>
@@ -357,13 +371,20 @@
 					</Button>
 				</div>
 			{:else if !currentTrack}
-				<div class="p-8 rounded-lg border bg-card space-y-4">
+				<div
+					class="p-8 rounded-lg border bg-card/50 backdrop-blur-sm shadow-lg space-y-4"
+				>
 					<p class="text-sm text-muted-foreground">
 						Playing on: {availableDevices.find((d) => d.id === deviceId)
 							?.name || 'Spotify Device'}
 					</p>
 					<p class="text-lg text-muted-foreground">Ready to play!</p>
-					<Button size="lg" onclick={getNextSong} disabled={loading}>
+					<Button
+						size="lg"
+						onclick={getNextSong}
+						disabled={loading}
+						class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
+					>
 						{loading ? 'Loading...' : 'Start First Song'}
 					</Button>
 				</div>
@@ -373,62 +394,163 @@
 		<!-- Current Track -->
 		{#if currentTrack && isReady}
 			<div class="space-y-4">
-				<!-- Playback Card -->
-				<div class="p-8 rounded-lg border bg-card text-center space-y-6">
-					{#if !isRevealed}
-						<div class="space-y-4">
-							<div class="text-6xl">🎵</div>
-							<p class="text-lg text-muted-foreground">
-								{isPlaying ? 'Song is playing...' : 'Song paused'}
-							</p>
-							<p class="text-sm text-muted-foreground">
-								Guess the year this song was released!
-							</p>
-							<div class="flex gap-2 justify-center">
-								{#if isPlaying}
-									<Button variant="outline" onclick={pausePlayback}
-										>⏸️ Pause</Button
-									>
-								{:else}
-									<Button variant="outline" onclick={resumePlayback}
-										>▶️ Play</Button
-									>
+				<!-- Hitster-style Card with Flip Effect -->
+				<div class="perspective-card mt-4">
+					<div class="card-container" class:flipped={isRevealed}>
+						<!-- Back of Card (Hidden Song) -->
+						<div
+							class="card card-back bg-linear-to-br from-purple-600 via-pink-500 to-orange-400"
+						>
+							<div
+								class="flex flex-col items-center justify-center h-full text-white space-y-6"
+							>
+								<div class="text-8xl md:text-9xl animate-pulse">🎵</div>
+							</div>
+						</div>
+
+						<!-- Front of Card (Revealed Song) -->
+						<div class="card card-front bg-white dark:bg-card">
+							<div
+								class="flex flex-col items-center justify-center h-full space-y-4 p-6"
+							>
+								{#if currentTrack.albumArt}
+									<img
+										src={currentTrack.albumArt}
+										alt="Album art"
+										class="w-40 h-40 md:w-48 md:h-48 rounded-lg shadow-2xl"
+									/>
 								{/if}
+								<div class="space-y-2 text-center">
+									<h2 class="text-2xl md:text-3xl font-bold">
+										{currentTrack.name}
+									</h2>
+									<p class="text-lg md:text-xl text-muted-foreground">
+										{currentTrack.artists.join(', ')}
+									</p>
+									<div class="pt-4">
+										<div
+											class="inline-block bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-8 py-3 rounded-full shadow-lg"
+										>
+											<p
+												class="text-5xl md:text-6xl font-black"
+												style="font-family: 'Righteous', cursive;"
+											>
+												{currentTrack.releaseYear}
+											</p>
+										</div>
+									</div>
+								</div>
 							</div>
 						</div>
+					</div>
+				</div>
+
+				<!-- Play/Pause Button (Thumb-sized) -->
+				<div class="flex justify-center mt-4">
+					{#if isPlaying}
+						<button
+							onclick={pausePlayback}
+							class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white dark:bg-card shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform border-4 border-purple-500"
+							aria-label="Pause"
+						>
+							<svg
+								class="w-8 h-8 md:w-10 md:h-10 text-purple-600"
+								fill="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+							</svg>
+						</button>
 					{:else}
-						<div class="space-y-4">
-							{#if currentTrack.albumArt}
-								<img
-									src={currentTrack.albumArt}
-									alt="Album art"
-									class="w-48 h-48 mx-auto rounded-lg shadow-lg"
-								/>
-							{/if}
-							<div class="space-y-2">
-								<h2 class="text-3xl font-bold">{currentTrack.name}</h2>
-								<p class="text-xl text-muted-foreground">
-									{currentTrack.artists.join(', ')}
-								</p>
-								<p class="text-4xl font-bold text-primary mt-4">
-									{currentTrack.releaseYear}
-								</p>
-							</div>
-						</div>
+						<button
+							onclick={resumePlayback}
+							class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white dark:bg-card shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform border-4 border-purple-500"
+							aria-label="Play"
+						>
+							<svg
+								class="w-8 h-8 md:w-10 md:h-10 text-purple-600"
+								fill="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path d="M8 5v14l11-7z" />
+							</svg>
+						</button>
 					{/if}
 				</div>
 
 				<!-- Controls -->
-				<div class="flex gap-2 justify-center">
+				<div class="flex gap-3 justify-center">
 					{#if !isRevealed}
-						<Button size="lg" onclick={revealSong}>Reveal Song</Button>
+						<Button
+							size="lg"
+							onclick={revealSong}
+							class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+						>
+							Reveal Song
+						</Button>
 					{:else}
-						<Button size="lg" onclick={getNextSong} disabled={loading}>
+						<Button
+							size="lg"
+							onclick={getNextSong}
+							disabled={loading}
+							class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+						>
 							{loading ? 'Loading...' : 'Next Song'}
 						</Button>
 					{/if}
+				</div>
+
+				<!-- Mobile-only bottom buttons -->
+				<div
+					class="sm:hidden flex gap-2 justify-center pt-4 border-t border-border/50"
+				>
+					<Button variant="outline" size="sm" onclick={clearHistory}>
+						Clear History
+					</Button>
+					<Button variant="outline" size="sm" onclick={endGame}>End Game</Button
+					>
 				</div>
 			</div>
 		{/if}
 	</div>
 </div>
+
+<style>
+	.perspective-card {
+		perspective: 1000px;
+		width: 100%;
+		max-width: 400px;
+		margin: 0 auto;
+	}
+
+	.card-container {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 3 / 4;
+		transition: transform 0.8s;
+		transform-style: preserve-3d;
+	}
+
+	.card-container.flipped {
+		transform: rotateY(180deg);
+	}
+
+	.card {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		backface-visibility: hidden;
+		border-radius: 1rem;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+		overflow: hidden;
+	}
+
+	.card-back {
+		transform: rotateY(0deg);
+	}
+
+	.card-front {
+		transform: rotateY(180deg);
+		border: 2px solid rgba(168, 85, 247, 0.3);
+	}
+</style>
