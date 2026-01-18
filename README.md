@@ -1,6 +1,6 @@
-# SvelteKit Bootstrap Template
+# Shitster
 
-A modern, production-ready SvelteKit template with authentication, database, PWA support, and deployment configurations.
+A modern SvelteKit application with authentication, database, PWA support, and deployment configurations.
 
 ## ✨ Features
 

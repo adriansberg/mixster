@@ -29,8 +29,7 @@
 				Welcome, {data.user.name || data.user.email}!
 			</h2>
 			<p class="text-muted-foreground">
-				This is your dashboard. Your bootstrap app is now set up with
-				authentication.
+				This is your dashboard. Welcome to Shitster!
 			</p>
 
 			{#if !data.user.emailVerified}

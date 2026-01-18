@@ -20,7 +20,7 @@
 	<!-- Header -->
 	<header class="container mx-auto px-4 py-6">
 		<nav class="flex justify-between items-center">
-			<div class="text-2xl font-bold">Bootstrap</div>
+			<div class="text-2xl font-bold">Shitster</div>
 			<div class="flex gap-4">
 				<a
 					href="/auth/login"
@@ -52,11 +52,11 @@
 			<h1
 				class="text-5xl font-bold mb-6 bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent"
 			>
-				Welcome to Your SvelteKit Bootstrap
+				Welcome to Shitster
 			</h1>
 			<p class="text-xl text-muted-foreground mb-8">
-				A modern, full-stack starter template with authentication, database, and
-				beautiful UI components ready to go.
+				A modern, full-stack application with authentication, database, and
+				beautiful UI components.
 			</p>
 			<div class="flex gap-4 justify-center">
 				<a
