@@ -79,6 +79,10 @@
 			console.log('Device ID has gone offline', device_id);
 			isReady = false;
 		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		player.addListener('playback_error', ({ message }: any) => {
+			console.error('Playback error:', message);
+		});
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		player.addListener('player_state_changed', (state: any) => {
@@ -185,6 +189,20 @@
 		}
 	}
 
+	async function resumePlayback() {
+		if (player) {
+			console.log('Calling player.resume()');
+			await player.resume();
+		}
+	}
+
+	async function pausePlayback() {
+		if (player) {
+			console.log('Calling player.pause()');
+			await player.pause();
+		}
+	}
+
 	async function clearHistory() {
 		try {
 			await fetch('/api/spotify/history/clear', { method: 'POST' });
@@ -252,6 +270,17 @@
 							<p class="text-sm text-muted-foreground">
 								Guess the year this song was released!
 							</p>
+							<div class="flex gap-2 justify-center">
+								{#if isPlaying}
+									<Button variant="outline" onclick={pausePlayback}
+										>⏸️ Pause</Button
+									>
+								{:else}
+									<Button variant="outline" onclick={resumePlayback}
+										>▶️ Play</Button
+									>
+								{/if}
+							</div>
 						</div>
 					{:else}
 						<div class="space-y-4">
