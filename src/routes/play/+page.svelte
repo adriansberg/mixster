@@ -14,6 +14,19 @@
 	let sessionId = $state('');
 	let selectedDefaults: string[] = $state([]);
 	let playbackCheckInterval: number | null = $state(null);
+	let visibilityState = $state<DocumentVisibilityState>('visible');
+	let windowFocused = $state(true);
+
+	// Stop/start polling based on page visibility AND window focus
+	$effect(() => {
+		const isActive = visibilityState === 'visible' && windowFocused;
+
+		if (!isActive) {
+			stopPolling();
+		} else if (sessionId) {
+			startPolling();
+		}
+	});
 
 	interface Track {
 		id: string;
@@ -45,14 +58,25 @@
 		getAvailableDevices();
 
 		// Start polling for playback state
-		playbackCheckInterval = window.setInterval(checkPlaybackState, 2000);
+		startPolling();
 
 		return () => {
-			if (playbackCheckInterval) {
-				clearInterval(playbackCheckInterval);
-			}
+			stopPolling();
 		};
 	});
+
+	function startPolling() {
+		if (!playbackCheckInterval) {
+			playbackCheckInterval = window.setInterval(checkPlaybackState, 2000);
+		}
+	}
+
+	function stopPolling() {
+		if (playbackCheckInterval) {
+			clearInterval(playbackCheckInterval);
+			playbackCheckInterval = null;
+		}
+	}
 
 	async function getAvailableDevices() {
 		const token = await getAccessToken();
@@ -273,6 +297,12 @@
 <svelte:head>
 	<title>Play - Shitster</title>
 </svelte:head>
+
+<svelte:document bind:visibilityState />
+<svelte:window
+	onblur={() => (windowFocused = false)}
+	onfocus={() => (windowFocused = true)}
+/>
 
 <div class="min-h-screen p-4 md:p-8">
 	<div class="max-w-2xl mx-auto space-y-6">
