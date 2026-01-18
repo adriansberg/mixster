@@ -2,88 +2,44 @@ export interface DefaultPlaylist {
 	id: string;
 	name: string;
 	spotifyUri: string;
-	category: 'decade' | 'genre';
 	description: string;
 }
 
 export const defaultPlaylists: DefaultPlaylist[] = [
-	// Decades
 	{
-		id: '1950s',
-		name: '1950s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DWSV3Tk4GO2fq',
-		category: 'decade',
-		description: 'Greatest hits from the 1950s'
+		id: 'norway',
+		name: 'HITSTER - Norway',
+		spotifyUri: 'spotify:playlist:0aPlDZsvBsCBBvrWym09Lf',
+		description: 'HITSTER - Norway'
 	},
 	{
-		id: '1960s',
-		name: '1960s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DXaKIA8E7WcJj',
-		category: 'decade',
-		description: 'Greatest hits from the 1960s'
+		id: 'nordics-rock',
+		name: 'HITSTER - Nordics Rock',
+		spotifyUri: 'spotify:playlist:12WZQyglCMIJ6qWVuqvr7L',
+		description: 'HITSTER - Nordics Rock'
 	},
 	{
-		id: '1970s',
-		name: '1970s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DWTJ7xPn4vNaz',
-		category: 'decade',
-		description: 'Greatest hits from the 1970s'
+		id: 'sweden',
+		name: 'HITSTER - Sweden',
+		spotifyUri: 'spotify:playlist:6AkPSXrefOXADb7onndgvp',
+		description: 'HITSTER - Sweden'
 	},
 	{
-		id: '1980s',
-		name: '1980s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DX4UtSsGT1Sbe',
-		category: 'decade',
-		description: 'Greatest hits from the 1980s'
+		id: 'nordics-soundtracks',
+		name: 'HITSTER - Nordics Soundtracks',
+		spotifyUri: 'spotify:playlist:4NQaek60nhU8ZT7mDWi59R',
+		description: 'HITSTER - Nordics Soundtracks'
 	},
 	{
-		id: '1990s',
-		name: '1990s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DXbTxeAdrVG2l',
-		category: 'decade',
-		description: 'Greatest hits from the 1990s'
+		id: 'uk-guilty-pleasures',
+		name: 'HITSTER - UK Guilty Pleasures',
+		spotifyUri: 'spotify:playlist:3wUKjSzUUyJyy8OXO4AtJ7',
+		description: 'HITSTER - UK Guilty Pleasures'
 	},
 	{
-		id: '2000s',
-		name: '2000s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DX4o1oenSJRJd',
-		category: 'decade',
-		description: 'Greatest hits from the 2000s'
-	},
-	{
-		id: '2010s',
-		name: '2010s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DX5Ejj0EkURtP',
-		category: 'decade',
-		description: 'Greatest hits from the 2010s'
-	},
-	{
-		id: '2020s',
-		name: '2020s Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DX2M1uN8RhQ0E',
-		category: 'decade',
-		description: 'Greatest hits from the 2020s'
-	},
-	// Genres
-	{
-		id: 'rock',
-		name: 'Rock Classics',
-		spotifyUri: 'spotify:playlist:0JfAnVGfbJXOsVlwsACNar',
-		category: 'genre',
-		description: 'Timeless rock classics'
-	},
-	{
-		id: 'pop',
-		name: 'Pop Hits',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DXcBWIGoYBM5M',
-		category: 'genre',
-		description: 'All-time pop favorites'
-	},
-	{
-		id: 'hiphop',
-		name: 'Hip-Hop Classics',
-		spotifyUri: 'spotify:playlist:37i9dQZF1DX48TTZL62Yht',
-		category: 'genre',
-		description: 'Classic hip-hop tracks'
+		id: 'platinum',
+		name: 'HITSTER - Platinum Edition',
+		spotifyUri: 'spotify:playlist:6a0Z098RE1Bwrii6cuLDAE',
+		description: 'HITSTER - Platinum Edition'
 	}
 ];
