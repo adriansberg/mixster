@@ -4,6 +4,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { goto } from '$app/navigation';
 	import { nanoid } from 'nanoid';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
 
@@ -16,9 +17,26 @@
 	let playlistInput = $state('');
 	let addingPlaylist = $state(false);
 	let errorMessage = $state('');
+	let defaultTrackCounts = $state<Record<string, number>>({});
+	let loadingTrackCounts = $state(true);
 
-	const decades = data.defaultPlaylists.filter((p) => p.category === 'decade');
-	const genres = data.defaultPlaylists.filter((p) => p.category === 'genre');
+	// Calculate total songs from selected playlists
+	const totalCustomSongs = $derived(
+		customPlaylists.reduce((sum, p) => sum + p.trackCount, 0)
+	);
+	const totalDefaultSongs = $derived(
+		selectedDefaults.reduce((sum, id) => {
+			const playlist = data.defaultPlaylists.find((p) => p.id === id);
+			if (playlist) {
+				return sum + (defaultTrackCounts[playlist.spotifyUri] || 0);
+			}
+			return sum;
+		}, 0)
+	);
+	const totalSongs = $derived(totalCustomSongs + totalDefaultSongs);
+	const totalSelectedPlaylists = $derived(
+		selectedDefaults.length + customPlaylists.length
+	);
 
 	// Load custom playlists from localStorage on mount
 	if (typeof window !== 'undefined') {
@@ -31,6 +49,58 @@
 			}
 		}
 	}
+
+	onMount(async () => {
+		// Check cache first
+		const cached = localStorage.getItem('shitster_default_track_counts');
+		const cacheTimestamp = localStorage.getItem(
+			'shitster_default_track_counts_timestamp'
+		);
+
+		// Use cache if less than 24 hours old
+		if (
+			cached &&
+			cacheTimestamp &&
+			Date.now() - parseInt(cacheTimestamp) < 24 * 60 * 60 * 1000
+		) {
+			try {
+				defaultTrackCounts = JSON.parse(cached);
+				loadingTrackCounts = false;
+				return;
+			} catch {
+				// Fall through to fetch
+			}
+		}
+
+		// Fetch track counts
+		try {
+			const playlistUris = data.defaultPlaylists.map((p) => p.spotifyUri);
+			const response = await fetch('/api/spotify/playlists/track-counts', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ playlistUris })
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				defaultTrackCounts = result.trackCounts;
+
+				// Cache the results
+				localStorage.setItem(
+					'shitster_default_track_counts',
+					JSON.stringify(defaultTrackCounts)
+				);
+				localStorage.setItem(
+					'shitster_default_track_counts_timestamp',
+					Date.now().toString()
+				);
+			}
+		} catch (error) {
+			console.error('Failed to fetch track counts:', error);
+		} finally {
+			loadingTrackCounts = false;
+		}
+	});
 
 	function toggleDefault(id: string) {
 		if (selectedDefaults.includes(id)) {
@@ -146,42 +216,19 @@
 				</p>
 			</div>
 
-			<!-- Decades -->
-			<div class="space-y-2">
-				<h3 class="font-medium">By Decade</h3>
-				<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-					{#each decades as playlist (playlist.id)}
-						<button
-							class="p-3 rounded-lg border transition-colors {selectedDefaults.includes(
-								playlist.id
-							)
-								? 'bg-primary text-primary-foreground border-primary'
-								: 'bg-card hover:bg-accent'}"
-							onclick={() => toggleDefault(playlist.id)}
-						>
-							<div class="font-medium text-sm">{playlist.name}</div>
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Genres -->
-			<div class="space-y-2">
-				<h3 class="font-medium">By Genre</h3>
-				<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-					{#each genres as playlist (playlist.id)}
-						<button
-							class="p-3 rounded-lg border transition-colors {selectedDefaults.includes(
-								playlist.id
-							)
-								? 'bg-primary text-primary-foreground border-primary'
-								: 'bg-card hover:bg-accent'}"
-							onclick={() => toggleDefault(playlist.id)}
-						>
-							<div class="font-medium text-sm">{playlist.name}</div>
-						</button>
-					{/each}
-				</div>
+			<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+				{#each data.defaultPlaylists as playlist (playlist.id)}
+					<button
+						class="p-3 rounded-lg border transition-colors {selectedDefaults.includes(
+							playlist.id
+						)
+							? 'bg-primary text-primary-foreground border-primary'
+							: 'bg-card hover:bg-accent'}"
+						onclick={() => toggleDefault(playlist.id)}
+					>
+						<div class="font-medium text-sm">{playlist.name}</div>
+					</button>
+				{/each}
 			</div>
 		</div>
 
@@ -252,7 +299,29 @@
 		</div>
 
 		<!-- Start Button -->
-		<div class="pt-4">
+		<div class="pt-4 space-y-3">
+			{#if totalSelectedPlaylists > 0}
+				<div class="text-center text-sm text-muted-foreground">
+					{#if loadingTrackCounts}
+						<p>
+							{totalSelectedPlaylists} playlist{totalSelectedPlaylists === 1
+								? ''
+								: 's'} selected • Loading track counts...
+						</p>
+					{:else}
+						<p>
+							{totalSelectedPlaylists} playlist{totalSelectedPlaylists === 1
+								? ''
+								: 's'} selected
+							{#if totalSongs > 0}
+								• {totalSongs.toLocaleString()} total song{totalSongs === 1
+									? ''
+									: 's'}
+							{/if}
+						</p>
+					{/if}
+				</div>
+			{/if}
 			<Button size="lg" class="w-full text-lg" onclick={startGame}>
 				Start Playing
 			</Button>
