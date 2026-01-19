@@ -1,10 +1,13 @@
 import { json } from '@sveltejs/kit';
-import { parseSpotifyPlaylistId } from '$lib/server/spotify';
-import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '$lib/server/env';
+import { parseSpotifyPlaylistId, spotifyFetch } from '$lib/server/spotify';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const { playlistInput } = await request.json();
 
 		if (!playlistInput) {
@@ -23,46 +26,23 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		// Get app access token (client credentials flow)
-		const tokenResponse = await fetch(
-			'https://accounts.spotify.com/api/token',
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-					Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`
-				},
-				body: 'grant_type=client_credentials'
-			}
+		// Fetch playlist details using user's access token
+		const playlist = await spotifyFetch<{
+			name: string;
+			id: string;
+			uri: string;
+			tracks: { total: number };
+		}>(
+			locals.user.id,
+			`/playlists/${playlistId}?fields=name,id,uri,tracks.total`
 		);
 
-		if (!tokenResponse.ok) {
-			return json(
-				{ error: 'Failed to authenticate with Spotify' },
-				{ status: 500 }
-			);
-		}
-
-		const { access_token } = await tokenResponse.json();
-
-		// Fetch playlist details
-		const playlistResponse = await fetch(
-			`https://api.spotify.com/v1/playlists/${playlistId}?fields=name,id,uri,tracks.total`,
-			{
-				headers: {
-					Authorization: `Bearer ${access_token}`
-				}
-			}
-		);
-
-		if (!playlistResponse.ok) {
+		if (!playlist) {
 			return json(
 				{ error: 'Could not find playlist. Make sure it is public.' },
 				{ status: 404 }
 			);
 		}
-
-		const playlist = await playlistResponse.json();
 
 		return json({
 			name: playlist.name,

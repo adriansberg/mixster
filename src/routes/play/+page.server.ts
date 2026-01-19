@@ -9,7 +9,7 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		redirect(302, '/auth/login');
+		redirect(302, '/auth/login/spotify');
 	}
 
 	// Check if user has Spotify tokens

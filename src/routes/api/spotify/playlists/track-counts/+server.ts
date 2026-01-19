@@ -1,39 +1,22 @@
 import { json } from '@sveltejs/kit';
-import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '$lib/server/env';
+import { spotifyFetch } from '$lib/server/spotify';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const { playlistUris } = await request.json();
 
 		if (!playlistUris || !Array.isArray(playlistUris)) {
 			return json({ error: 'Invalid playlist URIs' }, { status: 400 });
 		}
 
-		// Get app access token (client credentials flow)
-		const tokenResponse = await fetch(
-			'https://accounts.spotify.com/api/token',
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-					Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`
-				},
-				body: 'grant_type=client_credentials'
-			}
-		);
-
-		if (!tokenResponse.ok) {
-			return json(
-				{ error: 'Failed to authenticate with Spotify' },
-				{ status: 500 }
-			);
-		}
-
-		const { access_token } = await tokenResponse.json();
-
-		// Fetch track counts for all playlists
+		// Fetch track counts for all playlists using user's access token
 		const trackCounts: Record<string, number> = {};
+		const userId = locals.user.id;
 
 		await Promise.all(
 			playlistUris.map(async (uri: string) => {
@@ -42,18 +25,15 @@ export const POST: RequestHandler = async ({ request }) => {
 					const playlistId = uri.split(':').pop();
 					if (!playlistId) return;
 
-					const response = await fetch(
-						`https://api.spotify.com/v1/playlists/${playlistId}?fields=tracks.total`,
-						{
-							headers: {
-								Authorization: `Bearer ${access_token}`
-							}
-						}
+					const data = await spotifyFetch<{ tracks: { total: number } }>(
+						userId,
+						`/playlists/${playlistId}?fields=tracks.total`
 					);
 
-					if (response.ok) {
-						const data = await response.json();
+					if (data) {
 						trackCounts[uri] = data.tracks?.total || 0;
+					} else {
+						trackCounts[uri] = 0;
 					}
 				} catch (error) {
 					console.error(`Failed to fetch track count for ${uri}:`, error);

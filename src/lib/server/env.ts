@@ -6,16 +6,9 @@ const envSchema = z.object({
 	// Database
 	DATABASE_URL: z.url(),
 
-	// Auth
-	AUTH_SECRET: z.string().min(32),
-
 	// OAuth - Spotify
 	SPOTIFY_CLIENT_ID: z.string(),
 	SPOTIFY_CLIENT_SECRET: z.string(),
-
-	// Email - Resend
-	RESEND_API_KEY: z.string().optional(),
-	EMAIL_FROM: z.email().optional(),
 
 	// App
 	PUBLIC_APP_URL: z.url(),
@@ -42,7 +35,6 @@ export const env = validateEnv();
 
 // Named exports for convenience
 export const DATABASE_URL = env.DATABASE_URL;
-export const AUTH_SECRET = env.AUTH_SECRET;
 export const SPOTIFY_CLIENT_ID = env.SPOTIFY_CLIENT_ID;
 export const SPOTIFY_CLIENT_SECRET = env.SPOTIFY_CLIENT_SECRET;
 export const PUBLIC_APP_URL = env.PUBLIC_APP_URL;
