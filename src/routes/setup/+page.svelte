@@ -214,9 +214,9 @@
 				class="text-3xl md:text-4xl font-bold bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent"
 				style="font-family: 'Righteous', sans-serif;"
 			>
-				Game Setup
+				Spilloppsett
 			</h1>
-			<Button variant="outline" onclick={() => goto('/')}>Back</Button>
+			<Button variant="outline" onclick={() => goto('/')}>Tilbake</Button>
 		</div>
 
 		<!-- Default Playlists -->
@@ -225,10 +225,10 @@
 				class="bg-card/50 backdrop-blur-sm rounded-lg p-4 md:p-6 border shadow-lg"
 			>
 				<h2 class="text-xl md:text-2xl font-semibold mb-2">
-					Default Playlists
+					Standard spillelister
 				</h2>
 				<p class="text-sm text-muted-foreground mb-4">
-					Select which curated playlists to include
+					Velg hvilke spillelister som skal inkluderes
 				</p>
 
 				<div
@@ -257,9 +257,11 @@
 			<div
 				class="bg-card/50 backdrop-blur-sm rounded-lg p-4 md:p-6 border shadow-lg"
 			>
-				<h2 class="text-xl md:text-2xl font-semibold mb-2">Custom Playlists</h2>
+				<h2 class="text-xl md:text-2xl font-semibold mb-2">
+					Egne spillelister
+				</h2>
 				<p class="text-sm text-muted-foreground mb-4">
-					Add your own Spotify playlists
+					Legg til dine egne Spotify-spillelister
 				</p>
 
 				<form
@@ -269,12 +271,12 @@
 						addCustomPlaylist();
 					}}
 				>
-					<Label for="playlist-input">Spotify Playlist URI or URL</Label>
-					<div class="flex flex-col sm:flex-row gap-2">
+					<Label for="playlist-input">Spotify-spilleliste URL</Label>
+					<div class="flex flex-col sm:flex-row gap-2 mt-2">
 						<Input
 							id="playlist-input"
 							bind:value={playlistInput}
-							placeholder="spotify:playlist:... or https://open.spotify.com/playlist/..."
+							placeholder="https://open.spotify.com/playlist/..."
 							class="flex-1"
 						/>
 						<Button
@@ -282,7 +284,7 @@
 							disabled={addingPlaylist || !playlistInput.trim()}
 							class="w-full sm:w-auto"
 						>
-							{addingPlaylist ? 'Adding...' : 'Add'}
+							{addingPlaylist ? 'Legger til...' : 'Legg til'}
 						</Button>
 					</div>
 					{#if errorMessage}
@@ -300,7 +302,7 @@
 									<span class="font-medium truncate">{playlist.name}</span>
 									<span class="text-xs text-muted-foreground">
 										{playlist.trackCount}
-										{playlist.trackCount === 1 ? 'song' : 'songs'}
+										{playlist.trackCount === 1 ? 'sang' : 'sanger'}
 									</span>
 								</div>
 								<Button
@@ -308,14 +310,14 @@
 									size="sm"
 									onclick={() => removePlaylist(playlist.id)}
 								>
-									Remove
+									Fjern
 								</Button>
 							</div>
 						{/each}
 					</div>
 				{:else}
 					<p class="text-sm text-muted-foreground italic mt-4">
-						No custom playlists added yet
+						Ingen egne spillelister lagt til ennå
 					</p>
 				{/if}
 			</div>
@@ -327,32 +329,25 @@
 				<div
 					class="text-center text-sm md:text-base text-muted-foreground bg-card/30 backdrop-blur-sm rounded-lg p-3 border"
 				>
+					<span>
+						{totalSelectedPlaylists} spilleliste{totalSelectedPlaylists === 1
+							? ''
+							: 'r'} valgt
+					</span>
 					{#if loadingTrackCounts}
-						<p>
-							{totalSelectedPlaylists} playlist{totalSelectedPlaylists === 1
-								? ''
-								: 's'} selected • Loading track counts...
-						</p>
-					{:else}
-						<p class="font-medium">
-							{totalSelectedPlaylists} playlist{totalSelectedPlaylists === 1
-								? ''
-								: 's'} selected
-							{#if totalSongs > 0}
-								• {totalSongs.toLocaleString()} total song{totalSongs === 1
-									? ''
-									: 's'}
-							{/if}
-						</p>
+						<span> • Laster antall sanger... </span>
+					{:else if totalSongs > 0}
+						<span> • {totalSongs.toLocaleString()} sanger totalt</span>
 					{/if}
 				</div>
 			{/if}
 			<Button
 				size="lg"
-				class="w-full text-base md:text-lg py-6 bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
+				class="w-full text-xl text-white md:text-lg py-6 bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
+				style="font-family: 'Righteous', sans-serif;"
 				onclick={startGame}
 			>
-				🎵 Start Playing
+				START SPILL
 			</Button>
 		</div>
 	</div>

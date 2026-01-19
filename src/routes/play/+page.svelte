@@ -323,9 +323,11 @@
 			</h1>
 			<div class="hidden sm:flex gap-2">
 				<Button variant="outline" size="sm" onclick={clearHistory}>
-					Clear History
+					TØM HISTORIKK
 				</Button>
-				<Button variant="outline" size="sm" onclick={endGame}>End Game</Button>
+				<Button variant="outline" size="sm" onclick={endGame}
+					>AVSLUTT SPILL</Button
+				>
 			</div>
 		</div>
 
@@ -335,10 +337,10 @@
 				<div
 					class="p-4 md:p-6 rounded-lg bg-card/50 backdrop-blur-sm border shadow-lg space-y-4"
 				>
-					<p class="text-muted-foreground">Looking for Spotify devices...</p>
+					<p class="text-muted-foreground">Leter etter Spotify-enheter...</p>
 					{#if availableDevices.length > 0}
 						<div class="space-y-2">
-							<p class="text-sm">Select a device to play on:</p>
+							<p class="text-sm">Velg en enhet å spille på:</p>
 							<div class="flex flex-col gap-2">
 								{#each availableDevices as device (device.id)}
 									<Button
@@ -357,7 +359,7 @@
 						</div>
 					{:else}
 						<Button size="sm" onclick={getAvailableDevices}
-							>Refresh Devices</Button
+							>Oppdater enheter</Button
 						>
 					{/if}
 				</div>
@@ -367,25 +369,25 @@
 				>
 					<p class="text-destructive">{errorMessage}</p>
 					<Button size="sm" variant="outline" onclick={getAvailableDevices}>
-						Retry
+						Prøv Igjen
 					</Button>
 				</div>
 			{:else if !currentTrack}
 				<div
-					class="p-8 rounded-lg border bg-card/50 backdrop-blur-sm shadow-lg space-y-4"
+					class="p-8 rounded-lg bg-card/50 space-y-4"
 				>
 					<p class="text-sm text-muted-foreground">
-						Playing on: {availableDevices.find((d) => d.id === deviceId)
-							?.name || 'Spotify Device'}
+						Spiller på: {availableDevices.find((d) => d.id === deviceId)
+							?.name || 'Spotify-enhet'}
 					</p>
-					<p class="text-lg text-muted-foreground">Ready to play!</p>
+					<p class="text-lg text-muted-foreground">Klar til å spille!</p>
 					<Button
 						size="lg"
 						onclick={getNextSong}
 						disabled={loading}
-						class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
+						class="bg-linear-to-r text-lg text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
 					>
-						{loading ? 'Loading...' : 'Start First Song'}
+						{loading ? 'LASTER...' : 'START FØRSTE SANG'}
 					</Button>
 				</div>
 			{/if}
@@ -484,9 +486,9 @@
 						<Button
 							size="lg"
 							onclick={revealSong}
-							class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+							class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
 						>
-							Reveal Song
+							VIS SANG
 						</Button>
 					{:else}
 						<Button
@@ -495,7 +497,7 @@
 							disabled={loading}
 							class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
 						>
-							{loading ? 'Loading...' : 'Next Song'}
+							{loading ? 'LASTER...' : 'NESTE SANG'}
 						</Button>
 					{/if}
 				</div>
@@ -505,9 +507,10 @@
 					class="sm:hidden flex gap-2 justify-center pt-4 border-t border-border/50"
 				>
 					<Button variant="outline" size="sm" onclick={clearHistory}>
-						Clear History
+						TØM HISTORIKK
 					</Button>
-					<Button variant="outline" size="sm" onclick={endGame}>End Game</Button
+					<Button variant="outline" size="sm" onclick={endGame}
+						>AVSLUTT SPILL</Button
 					>
 				</div>
 			</div>

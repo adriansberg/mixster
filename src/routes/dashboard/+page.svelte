@@ -34,7 +34,7 @@
 			<div class="flex gap-2 w-full sm:w-auto">
 				<ThemeToggle />
 				<form method="POST" action="/auth/logout" class="flex-1 sm:flex-none">
-					<Button variant="outline" class="w-full sm:w-auto">Log out</Button>
+					<Button variant="outline" class="w-full sm:w-auto">Logg ut</Button>
 				</form>
 			</div>
 		</div>
@@ -43,10 +43,10 @@
 			class="bg-card/50 backdrop-blur-sm p-6 md:p-8 rounded-lg border space-y-4 shadow-lg"
 		>
 			<h2 class="text-xl md:text-2xl font-semibold mb-4">
-				Welcome, {data.user.displayName || 'there'}!
+				Velkommen, {data.user.displayName || 'der'}!
 			</h2>
 			<p class="text-muted-foreground text-sm md:text-base">
-				This is your dashboard. Welcome to Shitster!
+				Dette er dashboardet ditt. Velkommen til Shitster!
 			</p>
 
 			<div class="pt-4">
@@ -55,7 +55,7 @@
 						size="lg"
 						class="w-full sm:w-auto text-base md:text-lg py-6 px-8 bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
 					>
-						🎵 Play Shitster Game
+						🎵 Spill Shitster
 					</Button>
 				</a>
 			</div>

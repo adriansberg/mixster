@@ -6,12 +6,10 @@
 	// Generate random background circles
 	const circles = Array.from({ length: 20 }, (_, i) => ({
 		id: i,
-		width: Math.random() * 100 + 50,
-		height: Math.random() * 100 + 50,
+		size: Math.random() * 100 + 50,
 		left: Math.random() * 100,
 		top: Math.random() * 100,
-		duration: Math.random() * 3 + 2,
-		delay: Math.random() * 2
+		duration: Math.random() * 3 + 2
 	}));
 </script>
 
@@ -22,8 +20,9 @@
 	<div class="absolute inset-0 overflow-hidden">
 		{#each circles as circle (circle.id)}
 			<div
+				in:fade={{ duration: 800, delay: 900 }}
 				class="absolute rounded-full bg-white/10 animate-float"
-				style="width: {circle.width}px; height: {circle.height}px; left: {circle.left}%; top: {circle.top}%; animation-duration: {circle.duration}s; animation-delay: {circle.delay}s;"
+				style="width: {circle.size}px; height: {circle.size}px; left: {circle.left}%; top: {circle.top}%; animation-duration: {circle.duration}s"
 			></div>
 		{/each}
 	</div>
@@ -66,22 +65,13 @@
 				class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-white mb-2 tracking-tight drop-shadow-2xl px-4"
 				style="font-family: 'Monoton', cursive; text-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2), 0 0 40px rgba(255,255,255,0.5); letter-spacing: 0.05em;"
 			>
-				SHITSTER
+				shitster
 			</h1>
 			<div
-				class="h-1.5 md:h-2 bg-yellow-300 rounded-full mx-auto w-48 sm:w-56 md:w-64 shadow-lg animate-scale-x"
+				class="h-1.5 md:h-2 bg-yellow-300 rounded-full mx-auto w-56 md:w-64 shadow-lg animate-scale-x"
 				style="animation-delay: 600ms;"
 			></div>
 		</div>
-
-		<!-- Tagline -->
-		<p
-			in:fade={{ duration: 800, delay: 900 }}
-			class="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/95 font-bold tracking-wide drop-shadow-lg px-4 text-center"
-			style="font-family: 'Righteous', sans-serif;"
-		>
-			The Music Card Game
-		</p>
 
 		<!-- Play button -->
 		<button
@@ -97,7 +87,7 @@
 			>
 				<path d="M8 5v14l11-7z" />
 			</svg>
-			START GAME
+			START SPILL
 		</button>
 
 		<!-- Decorative sparkles -->
@@ -138,6 +128,6 @@
 		in:fly={{ y: 100, duration: 800, delay: 1400 }}
 		class="absolute bottom-6 md:bottom-8 text-white/70 text-xs sm:text-sm tracking-wider px-4 text-center"
 	>
-		GUESS THE YEAR • MAKE A TIMELINE • WIN!
+		GJETT OG VINN!
 	</div>
 </div>
