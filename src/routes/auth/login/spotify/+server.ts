@@ -1,5 +1,6 @@
 import { generateState, generateCodeVerifier } from 'arctic';
 import { spotify } from '$lib/server/auth';
+import { env } from '$lib/server/env';
 
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -21,10 +22,11 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		'user-modify-playback-state'
 	]);
 
+	const isProduction = env.NODE_ENV === 'production';
+
 	event.cookies.set('spotify_oauth_state', state, {
 		path: '/',
-		domain: '127.0.0.1',
-		secure: false,
+		secure: isProduction,
 		httpOnly: true,
 		maxAge: 60 * 10,
 		sameSite: 'lax'
@@ -32,8 +34,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 
 	event.cookies.set('spotify_code_verifier', codeVerifier, {
 		path: '/',
-		domain: '127.0.0.1',
-		secure: false,
+		secure: isProduction,
 		httpOnly: true,
 		maxAge: 60 * 10,
 		sameSite: 'lax'
