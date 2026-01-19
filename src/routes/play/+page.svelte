@@ -278,6 +278,27 @@
 		}
 	}
 
+	async function transferPlayback(newDeviceId: string) {
+		const token = await getAccessToken();
+		if (!token) return;
+
+		try {
+			await fetch('https://api.spotify.com/v1/me/player', {
+				method: 'PUT',
+				body: JSON.stringify({
+					device_ids: [newDeviceId],
+					play: isPlaying
+				}),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`
+				}
+			});
+		} catch (error) {
+			console.error('Failed to transfer playback:', error);
+		}
+	}
+
 	async function clearHistory() {
 		try {
 			await fetch('/api/spotify/history/clear', { method: 'POST' });
@@ -331,6 +352,110 @@
 			</div>
 		</div>
 
+		<!-- Device Selector - Collapsible when playing -->
+		{#if availableDevices.length > 0}
+			<details class="group" open={!currentTrack || !isReady}>
+				<summary
+					class="cursor-pointer list-none p-3 md:p-4 rounded-lg bg-card/50 backdrop-blur-sm border shadow-sm hover:bg-card/70 transition-colors"
+				>
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-2 text-sm">
+							<span>🔊</span>
+							<span class="font-medium">
+								{availableDevices.find((d) => d.id === deviceId)?.name ||
+									'Velg enhet'}
+							</span>
+						</div>
+						<span
+							class="text-muted-foreground text-xs group-open:rotate-180 transition-transform"
+						>
+							▼
+						</span>
+					</div>
+				</summary>
+				<div
+					class="mt-2 p-3 md:p-4 rounded-lg bg-card/50 backdrop-blur-sm border shadow-sm space-y-2"
+				>
+					{#each availableDevices as device (device.id)}
+						<button
+							onclick={async () => {
+								deviceId = device.id;
+								isReady = true;
+								errorMessage = '';
+								// If currently playing, transfer playback to new device
+								if (isPlaying && currentTrack) {
+									await transferPlayback(deviceId);
+								}
+							}}
+							class="w-full p-3 text-left rounded-lg border transition-all {deviceId ===
+							device.id
+								? 'bg-purple-500/20 border-purple-500'
+								: 'bg-background hover:bg-accent border-border'}"
+						>
+							<div class="flex items-center justify-between">
+								<div>
+									<div class="font-medium text-sm">{device.name}</div>
+									<div class="text-xs text-muted-foreground">{device.type}</div>
+								</div>
+								{#if device.is_active}
+									<span class="text-lg">🎵</span>
+								{:else if deviceId === device.id}
+									<span class="text-lg">✓</span>
+								{/if}
+							</div>
+						</button>
+					{/each}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={getAvailableDevices}
+						class="w-full"
+					>
+						🔄 Oppdater enheter
+					</Button>
+					<details class="mt-2">
+						<summary
+							class="text-xs text-muted-foreground cursor-pointer hover:text-foreground"
+						>
+							Finner du ikke enheten din?
+						</summary>
+						<div class="mt-2 text-xs text-muted-foreground space-y-1 pl-2">
+							<p>
+								📱 <strong>På telefonen:</strong> Åpne Spotify-appen og start en
+								sang (pause den igjen)
+							</p>
+							<p>
+								💻 <strong>På datamaskinen:</strong> Åpne Spotify og start avspilling
+							</p>
+							<p>
+								🔄 Klikk på oppdateringsknappen etter at du har startet Spotify
+							</p>
+						</div>
+					</details>
+				</div>
+			</details>
+		{:else}
+			<div class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+				<p class="text-sm font-medium mb-2">⚠️ Ingen Spotify-enheter funnet</p>
+				<p class="text-xs text-muted-foreground mb-3">
+					For å spille av musikk må du først:
+				</p>
+				<ol
+					class="text-xs text-muted-foreground space-y-1 list-decimal list-inside mb-3"
+				>
+					<li>Åpne Spotify-appen på telefonen eller datamaskinen din</li>
+					<li>
+						Start avspilling av en hvilken som helst sang (kan pauses
+						umiddelbart)
+					</li>
+					<li>Klikk på "Oppdater enheter" under</li>
+				</ol>
+				<Button size="sm" onclick={getAvailableDevices} class="w-full">
+					🔄 Oppdater enheter
+				</Button>
+			</div>
+		{/if}
+
 		<!-- Player Status -->
 		<div class="text-center">
 			{#if !isReady}
@@ -373,9 +498,7 @@
 					</Button>
 				</div>
 			{:else if !currentTrack}
-				<div
-					class="p-8 rounded-lg bg-card/50 space-y-4"
-				>
+				<div class="p-8 rounded-lg bg-card/50 space-y-4">
 					<p class="text-sm text-muted-foreground">
 						Spiller på: {availableDevices.find((d) => d.id === deviceId)
 							?.name || 'Spotify-enhet'}
