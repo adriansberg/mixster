@@ -3,30 +3,16 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	let deviceId: string = $state('');
-	let availableDevices: SpotifyDevice[] = $state([]);
-	let isReady = $state(false);
 	let currentTrack: Track | null = $state(null);
 	let isRevealed = $state(false);
-	let isPlaying = $state(false);
 	let loading = $state(false);
 	let errorMessage = $state('');
 	let sessionId = $state('');
 	let selectedDefaults: string[] = $state([]);
-	let playbackCheckInterval: number | null = $state(null);
-	let visibilityState = $state<DocumentVisibilityState>('visible');
-	let windowFocused = $state(true);
-
-	// Stop/start polling based on page visibility AND window focus
-	$effect(() => {
-		const isActive = visibilityState === 'visible' && windowFocused;
-
-		if (!isActive) {
-			stopPolling();
-		} else if (sessionId) {
-			startPolling();
-		}
-	});
+	let isPlaying = $state(false);
+	let deviceId = $state<string | null>(null);
+	let availableDevices = $state<SpotifyDevice[]>([]);
+	let showDeviceSelector = $state(true);
 
 	interface Track {
 		id: string;
@@ -43,7 +29,7 @@
 		is_active: boolean;
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		// Get session data from localStorage
 		sessionId = localStorage.getItem('shitster_session_id') || '';
 		const stored = localStorage.getItem('shitster_selected_defaults');
@@ -54,109 +40,35 @@
 			return;
 		}
 
-		// Get available Spotify devices
-		getAvailableDevices();
-
-		// Start polling for playback state
-		startPolling();
-
-		return () => {
-			stopPolling();
-		};
-	});
-
-	function startPolling() {
-		if (!playbackCheckInterval) {
-			playbackCheckInterval = window.setInterval(checkPlaybackState, 2000);
-		}
-	}
-
-	function stopPolling() {
-		if (playbackCheckInterval) {
-			clearInterval(playbackCheckInterval);
-			playbackCheckInterval = null;
-		}
-	}
-
-	async function getAvailableDevices() {
-		const token = await getAccessToken();
-		if (!token) return;
-
+		// Get devices once at start
 		try {
-			const response = await fetch(
-				'https://api.spotify.com/v1/me/player/devices',
-				{
-					headers: { Authorization: `Bearer ${token}` }
-				}
-			);
+			const devicesResponse = await fetch('/api/spotify/devices');
+			const data = await devicesResponse.json();
+			console.log('data', data);
+			availableDevices = data.devices || [];
 
-			if (response.ok) {
-				const data = await response.json();
-				availableDevices = data.devices;
-
-				// Find an active device or use the first available one
+			if (availableDevices.length === 0) {
+				errorMessage =
+					'No Spotify devices found. Open Spotify on a device first.';
+				showDeviceSelector = true;
+			} else if (availableDevices.length === 1) {
+				// Auto-select if only one device
+				deviceId = availableDevices[0].id;
+			} else {
+				// Show selector if multiple devices
 				const activeDevice = availableDevices.find((d) => d.is_active);
 				if (activeDevice) {
 					deviceId = activeDevice.id;
-					isReady = true;
-				} else if (availableDevices.length > 0) {
-					deviceId = availableDevices[0].id;
-					isReady = true;
 				} else {
-					errorMessage =
-						'No Spotify devices found. Please open Spotify on your phone, computer, or other device.';
+					showDeviceSelector = true;
 				}
+				showDeviceSelector = true;
 			}
 		} catch (error) {
 			console.error('Failed to get devices:', error);
-			errorMessage = 'Failed to get Spotify devices';
+			errorMessage = 'Failed to connect to Spotify. Please try again.';
 		}
-	}
-
-	async function checkPlaybackState() {
-		const token = await getAccessToken();
-		if (!token) return;
-
-		try {
-			const response = await fetch('https://api.spotify.com/v1/me/player', {
-				headers: { Authorization: `Bearer ${token}` }
-			});
-
-			if (response.status === 204) {
-				// No active playback
-				return;
-			}
-
-			if (response.ok) {
-				const data = await response.json();
-				isPlaying = data.is_playing;
-
-				// Update device if it changed
-				if (data.device && data.device.id !== deviceId) {
-					deviceId = data.device.id;
-				}
-			}
-		} catch (error) {
-			console.error('Failed to check playback state:', error);
-		}
-	}
-
-	async function getAccessToken(): Promise<string | null> {
-		try {
-			const response = await fetch('/api/spotify/token');
-			if (response.status === 401) {
-				// Not authenticated - redirect to setup/login
-				errorMessage = 'Please log in with Spotify to play music';
-				setTimeout(() => goto('/setup'), 2000);
-				return null;
-			}
-			if (!response.ok) return null;
-			const data = await response.json();
-			return data.accessToken;
-		} catch {
-			return null;
-		}
-	}
+	});
 
 	async function getNextSong() {
 		loading = true;
@@ -167,7 +79,9 @@
 			// Get custom playlists from localStorage
 			const storedCustom = localStorage.getItem('shitster_custom_playlists');
 			const customPlaylists = storedCustom ? JSON.parse(storedCustom) : [];
-			const customPlaylistUris = customPlaylists.map((p: any) => p.uri);
+			const customPlaylistUris = customPlaylists.map(
+				(p: { uri: string }) => p.uri
+			);
 
 			const response = await fetch('/api/spotify/songs/random', {
 				method: 'POST',
@@ -201,101 +115,66 @@
 
 	async function playSong(trackId: string) {
 		if (!deviceId) {
-			errorMessage = 'Spotify player not ready';
-			return;
-		}
-
-		const token = await getAccessToken();
-		if (!token) {
-			errorMessage = 'Failed to get access token';
+			errorMessage = 'Please select a device first';
+			showDeviceSelector = true;
 			return;
 		}
 
 		try {
-			await fetch(
-				`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
-				{
-					method: 'PUT',
-					body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${token}`
-					}
-				}
-			);
-		} catch {
-			errorMessage = 'Failed to play song';
-		}
-	}
-
-	function revealSong() {
-		isRevealed = true;
-		pausePlayback();
-	}
-
-	async function resumePlayback() {
-		const token = await getAccessToken();
-		if (!token) {
-			errorMessage = 'Failed to get access token';
-			return;
-		}
-
-		try {
-			const url = deviceId
-				? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
-				: 'https://api.spotify.com/v1/me/player/play';
-
-			await fetch(url, {
+			const playResponse = await fetch('/api/spotify/player/play', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`
-				}
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ trackId, deviceId })
 			});
+
+			if (!playResponse.ok) {
+				const error = await playResponse.json();
+				errorMessage = `Playback failed: ${error.error || 'Unknown error'}`;
+				return;
+			}
+
 			isPlaying = true;
-		} catch {
-			errorMessage = 'Failed to resume playback';
-		}
-	}
-
-	async function pausePlayback() {
-		const token = await getAccessToken();
-		if (!token) {
-			errorMessage = 'Failed to get access token';
-			return;
-		}
-
-		try {
-			await fetch('https://api.spotify.com/v1/me/player/pause', {
-				method: 'PUT',
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			});
-			isPlaying = false;
-		} catch {
-			errorMessage = 'Failed to pause playback';
-		}
-	}
-
-	async function transferPlayback(newDeviceId: string) {
-		const token = await getAccessToken();
-		if (!token) return;
-
-		try {
-			await fetch('https://api.spotify.com/v1/me/player', {
-				method: 'PUT',
-				body: JSON.stringify({
-					device_ids: [newDeviceId],
-					play: isPlaying
-				}),
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`
-				}
-			});
+			errorMessage = '';
 		} catch (error) {
-			console.error('Failed to transfer playback:', error);
+			console.error('Playback error:', error);
+			errorMessage = 'Failed to start playback';
+		}
+	}
+
+	async function revealSong() {
+		isRevealed = true;
+
+		// Pause playback when revealing the song
+		if (isPlaying) {
+			try {
+				const response = await fetch('/api/spotify/player/pause', {
+					method: 'PUT'
+				});
+
+				if (response.ok) {
+					isPlaying = false;
+				}
+			} catch (error) {
+				console.error('Failed to pause on reveal:', error);
+			}
+		}
+	}
+
+	async function togglePlayback() {
+		try {
+			const action = isPlaying ? 'pause' : 'play';
+			const response = await fetch('/api/spotify/player/' + action, {
+				method: 'PUT'
+			});
+
+			if (response.ok) {
+				isPlaying = !isPlaying;
+			} else {
+				const error = await response.json();
+				errorMessage = error.error || 'Failed to control playback';
+			}
+		} catch {
+			errorMessage = 'Failed to control playback';
 		}
 	}
 
@@ -318,12 +197,6 @@
 <svelte:head>
 	<title>Play - Shitster</title>
 </svelte:head>
-
-<svelte:document bind:visibilityState />
-<svelte:window
-	onblur={() => (windowFocused = false)}
-	onfocus={() => (windowFocused = true)}
-/>
 
 <div
 	class="min-h-screen p-4 md:p-8 bg-linear-to-br from-purple-600/10 via-pink-500/10 to-orange-400/10 relative"
@@ -352,157 +225,36 @@
 			</div>
 		</div>
 
-		<!-- Device Selector - Collapsible when playing -->
-		{#if availableDevices.length > 0}
-			<details class="group" open={!currentTrack || !isReady}>
-				<summary
-					class="cursor-pointer list-none p-3 md:p-4 rounded-lg bg-card/50 backdrop-blur-sm border shadow-sm hover:bg-card/70 transition-colors"
-				>
-					<div class="flex items-center justify-between">
-						<div class="flex items-center gap-2 text-sm">
-							<span>🔊</span>
-							<span class="font-medium">
-								{availableDevices.find((d) => d.id === deviceId)?.name ||
-									'Velg enhet'}
-							</span>
-						</div>
-						<span
-							class="text-muted-foreground text-xs group-open:rotate-180 transition-transform"
-						>
-							▼
-						</span>
-					</div>
-				</summary>
-				<div
-					class="mt-2 p-3 md:p-4 rounded-lg bg-card/50 backdrop-blur-sm border shadow-sm space-y-2"
-				>
-					{#each availableDevices as device (device.id)}
-						<button
-							onclick={async () => {
-								deviceId = device.id;
-								isReady = true;
-								errorMessage = '';
-								// If currently playing, transfer playback to new device
-								if (isPlaying && currentTrack) {
-									await transferPlayback(deviceId);
-								}
-							}}
-							class="w-full p-3 text-left rounded-lg border transition-all {deviceId ===
-							device.id
-								? 'bg-purple-500/20 border-purple-500'
-								: 'bg-background hover:bg-accent border-border'}"
-						>
-							<div class="flex items-center justify-between">
-								<div>
-									<div class="font-medium text-sm">{device.name}</div>
-									<div class="text-xs text-muted-foreground">{device.type}</div>
-								</div>
-								{#if device.is_active}
-									<span class="text-lg">🎵</span>
-								{:else if deviceId === device.id}
-									<span class="text-lg">✓</span>
-								{/if}
-							</div>
-						</button>
-					{/each}
-					<Button
-						variant="outline"
-						size="sm"
-						onclick={getAvailableDevices}
-						class="w-full"
-					>
-						🔄 Oppdater enheter
-					</Button>
-					<details class="mt-2">
-						<summary
-							class="text-xs text-muted-foreground cursor-pointer hover:text-foreground"
-						>
-							Finner du ikke enheten din?
-						</summary>
-						<div class="mt-2 text-xs text-muted-foreground space-y-1 pl-2">
-							<p>
-								📱 <strong>På telefonen:</strong> Åpne Spotify-appen og start en
-								sang (pause den igjen)
-							</p>
-							<p>
-								💻 <strong>På datamaskinen:</strong> Åpne Spotify og start avspilling
-							</p>
-							<p>
-								🔄 Klikk på oppdateringsknappen etter at du har startet Spotify
-							</p>
-						</div>
-					</details>
-				</div>
-			</details>
-		{:else}
-			<div class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-				<p class="text-sm font-medium mb-2">⚠️ Ingen Spotify-enheter funnet</p>
-				<p class="text-xs text-muted-foreground mb-3">
-					For å spille av musikk må du først:
-				</p>
-				<ol
-					class="text-xs text-muted-foreground space-y-1 list-decimal list-inside mb-3"
-				>
-					<li>Åpne Spotify-appen på telefonen eller datamaskinen din</li>
-					<li>
-						Start avspilling av en hvilken som helst sang (kan pauses
-						umiddelbart)
-					</li>
-					<li>Klikk på "Oppdater enheter" under</li>
-				</ol>
-				<Button size="sm" onclick={getAvailableDevices} class="w-full">
-					🔄 Oppdater enheter
-				</Button>
-			</div>
-		{/if}
-
 		<!-- Player Status -->
 		<div class="text-center">
-			{#if !isReady}
-				<div
-					class="p-4 md:p-6 rounded-lg bg-card/50 backdrop-blur-sm border shadow-lg space-y-4"
-				>
-					<p class="text-muted-foreground">Leter etter Spotify-enheter...</p>
-					{#if availableDevices.length > 0}
-						<div class="space-y-2">
-							<p class="text-sm">Velg en enhet å spille på:</p>
-							<div class="flex flex-col gap-2">
-								{#each availableDevices as device (device.id)}
-									<Button
-										variant={device.id === deviceId ? 'default' : 'outline'}
-										onclick={() => {
-											deviceId = device.id;
-											isReady = true;
-											errorMessage = '';
-										}}
-									>
-										{device.name} ({device.type})
-										{device.is_active ? '🎵' : ''}
-									</Button>
-								{/each}
-							</div>
-						</div>
-					{:else}
-						<Button size="sm" onclick={getAvailableDevices}
-							>Oppdater enheter</Button
-						>
-					{/if}
+			{#if showDeviceSelector && availableDevices.length > 0}
+				<div class="p-4 md:p-6 rounded-lg bg-card/50 space-y-4">
+					<p class="text-lg font-semibold">Select a device:</p>
+					<div class="space-y-2">
+						{#each availableDevices as device (device.id)}
+							<Button
+								variant={deviceId === device.id ? 'default' : 'outline'}
+								class="w-full"
+								onclick={() => {
+									deviceId = device.id;
+									showDeviceSelector = false;
+									errorMessage = '';
+								}}
+							>
+								{device.name} ({device.type})
+								{#if device.is_active}<span class="ml-2">🎵</span>{/if}
+							</Button>
+						{/each}
+					</div>
 				</div>
 			{:else if errorMessage}
 				<div
 					class="p-4 md:p-6 rounded-lg bg-destructive/10 border border-destructive space-y-2"
 				>
 					<p class="text-destructive">{errorMessage}</p>
-					<Button size="sm" variant="outline" onclick={getAvailableDevices}>
-						Prøv Igjen
-					</Button>
 				</div>
 			{:else if !currentTrack}
 				<div class="p-8 rounded-lg bg-card/50 space-y-4">
-					<p class="text-sm text-muted-foreground">
-						Spiller på: {availableDevices.find((d) => d.id === deviceId)
-							?.name || 'Spotify-enhet'}
-					</p>
 					<p class="text-lg text-muted-foreground">Klar til å spille!</p>
 					<Button
 						size="lg"
@@ -517,7 +269,7 @@
 		</div>
 
 		<!-- Current Track -->
-		{#if currentTrack && isReady}
+		{#if currentTrack}
 			<div class="space-y-4">
 				<!-- Hitster-style Card with Flip Effect -->
 				<div class="perspective-card mt-4">
@@ -570,59 +322,38 @@
 					</div>
 				</div>
 
-				<!-- Play/Pause Button (Thumb-sized) -->
-				<div class="flex justify-center mt-4">
-					{#if isPlaying}
-						<button
-							onclick={pausePlayback}
-							class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white dark:bg-card shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform border-4 border-purple-500"
-							aria-label="Pause"
-						>
-							<svg
-								class="w-8 h-8 md:w-10 md:h-10 text-purple-600"
-								fill="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-							</svg>
-						</button>
-					{:else}
-						<button
-							onclick={resumePlayback}
-							class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white dark:bg-card shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform border-4 border-purple-500"
-							aria-label="Play"
-						>
-							<svg
-								class="w-8 h-8 md:w-10 md:h-10 text-purple-600"
-								fill="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path d="M8 5v14l11-7z" />
-							</svg>
-						</button>
-					{/if}
-				</div>
-
 				<!-- Controls -->
-				<div class="flex gap-3 justify-center">
-					{#if !isRevealed}
-						<Button
-							size="lg"
-							onclick={revealSong}
-							class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
-						>
-							VIS SANG
-						</Button>
-					{:else}
-						<Button
-							size="lg"
-							onclick={getNextSong}
-							disabled={loading}
-							class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
-						>
-							{loading ? 'LASTER...' : 'NESTE SANG'}
-						</Button>
-					{/if}
+				<div class="flex flex-col gap-3 items-center">
+					<!-- Play/Pause Control -->
+					<Button
+						size="lg"
+						onclick={togglePlayback}
+						variant="outline"
+						class="text-2xl w-16 h-16 rounded-full"
+					>
+						{isPlaying ? '⏸️' : '▶️'}
+					</Button>
+
+					<div class="flex gap-3">
+						{#if !isRevealed}
+							<Button
+								size="lg"
+								onclick={revealSong}
+								class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+							>
+								VIS SANG
+							</Button>
+						{:else}
+							<Button
+								size="lg"
+								onclick={getNextSong}
+								disabled={loading}
+								class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+							>
+								{loading ? 'LASTER...' : 'NESTE SANG'}
+							</Button>
+						{/if}
+					</div>
 				</div>
 
 				<!-- Mobile-only bottom buttons -->

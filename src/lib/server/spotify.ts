@@ -128,6 +128,16 @@ export async function spotifyFetch<T = unknown>(
 			return null;
 		}
 
+		// Handle 204 No Content and empty responses (play/pause endpoints)
+		const contentType = response.headers.get('content-type');
+		if (
+			response.status === 204 ||
+			!contentType ||
+			!contentType.includes('application/json')
+		) {
+			return {} as T;
+		}
+
 		return (await response.json()) as T;
 	} catch (error) {
 		console.error('Error making Spotify API request:', error);
