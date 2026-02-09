@@ -198,12 +198,10 @@
 	<title>Play - Shitster</title>
 </svelte:head>
 
-<div
-	class="min-h-screen p-4 md:p-8 bg-linear-to-br from-purple-600/10 via-pink-500/10 to-orange-400/10 relative"
->
+<div class="min-h-screen p-4 md:p-8 bg-gray-950 relative">
 	<!-- Decorative background gradient -->
 	<div
-		class="absolute inset-0 bg-linear-to-br from-background/80 via-background/90 to-background pointer-events-none"
+		class="absolute inset-0 bg-linear-to-br from-purple-600/5 via-pink-500/5 to-orange-400/5 pointer-events-none"
 	></div>
 
 	<div class="max-w-2xl mx-auto space-y-6 relative z-10">
@@ -323,13 +321,13 @@
 				</div>
 
 				<!-- Controls -->
-				<div class="flex flex-col gap-3 items-center">
+				<div class="flex flex-col items-center">
 					<!-- Play/Pause Control -->
 					<Button
 						size="lg"
 						onclick={togglePlayback}
 						variant="outline"
-						class="text-2xl w-16 h-16 rounded-full"
+						class="text-2xl w-16 h-16 rounded-full mt-6 mb-6"
 					>
 						{isPlaying ? '⏸️' : '▶️'}
 					</Button>
