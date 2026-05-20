@@ -21,12 +21,12 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
   1. Clicking "NESTE SANG" plays a song from a default HITSTER playlist without error
   2. Playlist metadata (name, track count) resolves correctly from a Spotify URL or URI
   3. When Spotify tokens expire, the app detects it and handles re-auth via the committed SpotifyAuthError flow
-**Plans**: 3 plans
+**Plans**: 3 plans, 1 wave
 
-Plans:
-- [ ] 01-01-PLAN.md — Migrate songs/random to /items endpoint with random offset and 403 detection
-- [ ] 01-02-PLAN.md — Fix tracks.total → items.total in validate and track-counts routes
-- [ ] 01-03-PLAN.md — Commit AUTH-01 re-auth infrastructure (SpotifyAuthError, reauth endpoint)
+**Wave 1** *(all plans independent — execute in parallel)*
+- [ ] 01-01-PLAN.md — Migrate songs/random to /items endpoint with random offset and 403 detection (API-01)
+- [ ] 01-02-PLAN.md — Fix tracks.total → items.total in validate and track-counts routes (API-02)
+- [ ] 01-03-PLAN.md — Commit AUTH-01 re-auth infrastructure (SpotifyAuthError, reauth endpoint) (AUTH-01)
 
 ### Phase 2: Security & Cleanup
 **Goal**: Dead and dangerous code is gone — no raw token endpoint, no IDOR-vulnerable routes, no dead DB table, clean TypeScript compile

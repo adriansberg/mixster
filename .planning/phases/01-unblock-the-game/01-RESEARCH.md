@@ -376,22 +376,16 @@ if (!playlistId) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `/items` return 403 for HITSTER playlists in practice, or is the Spotify docs wording overstated?**
-   - What we know: Official docs say 403 for non-owner/non-collaborator playlists. Community confirms this behavior since Feb 11.
-   - What's unclear: Whether HITSTER playlists were granted any special collaborative access, or if "following" a playlist grants any special status.
-   - Recommendation: User must decide: copy HITSTER playlists to their Spotify account, or the app detects 403 and prompts them to do so.
+   - **RESOLVED:** Treated as 403 by the plan. songs/random detects `response.status === 403` and returns `{ error: 'playlistInaccessible', message: 'Copy this playlist to your Spotify library to use it' }` immediately. This is the locked user decision from planning context — app detects 403 and shows copy instruction rather than silently failing.
 
 2. **Does `items.total` work on `GET /playlists/{id}` for third-party playlists (D-04)?**
-   - What we know: `items` object on metadata endpoint is documented as restricted. But the restriction docs refer to the sub-resource endpoint primarily.
-   - What's unclear: Whether the embedded `items: { total }` in the metadata response is subject to the same restriction.
-   - Recommendation: Test against a HITSTER playlist URI; if null, use `tracks(total)` syntax instead.
+   - **RESOLVED (accepted risk):** D-04 as stated in REQUIREMENTS.md specifies `?fields=id,name,items.total`. Plan 01-02 implements this per requirement. If `items.total` is null for third-party metadata at runtime, the fallback (`tracks(total)` syntax) is a Phase 4 concern — it affects track count display only, not the game loop. Not a blocker.
 
 3. **How does `songs/random` handle offset strategy when it cannot know `total` for a 403 playlist?**
-   - What we know: If playlist returns 403, `playlistData` is null — no `total` available.
-   - What's unclear: This is moot if the 403 issue is resolved by user copying playlists, but if we want to support third-party playlists via some other means, we cannot use the random offset strategy.
-   - Recommendation: Defer — resolve the ownership issue first.
+   - **RESOLVED (moot):** Plan 01-01 returns immediately on 403 without entering the offset computation — `if (response.status === 403) return json(...)` fires before any `total` is read. No offset strategy needed for inaccessible playlists.
 
 ---
 
