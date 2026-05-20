@@ -1,5 +1,5 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { spotifyFetch } from '$lib/server/spotify';
+import { spotifyFetch, SpotifyAuthError } from '$lib/server/spotify';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	const user = locals.user;
@@ -20,6 +20,12 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 		return json({ devices: data.devices || [] });
 	} catch (error) {
+		if (error instanceof SpotifyAuthError) {
+			return json({ 
+				error: 'Spotify authentication failed', 
+				requiresReauth: true 
+			}, { status: 401 });
+		}
 		console.error('Error fetching devices:', error);
 		return json({ error: 'Failed to fetch devices' }, { status: 500 });
 	}

@@ -36,6 +36,9 @@ export async function getSpotifyAccessToken(
 	const refreshed = await refreshSpotifyToken(tokens.refreshToken);
 
 	if (!refreshed) {
+		// Refresh failed - delete invalid tokens to force re-authentication
+		console.error('Failed to refresh token for user:', userId, '- cleaning up invalid tokens');
+		await deleteSpotifyTokens(userId);
 		return null;
 	}
 
@@ -94,6 +97,7 @@ async function refreshSpotifyToken(
 
 /**
  * Make authenticated Spotify API request
+ * @throws {SpotifyAuthError} when authentication fails and re-auth is required
  */
 export async function spotifyFetch<T = unknown>(
 	userId: string,
@@ -103,8 +107,8 @@ export async function spotifyFetch<T = unknown>(
 	const accessToken = await getSpotifyAccessToken(userId);
 
 	if (!accessToken) {
-		console.error('No valid Spotify access token available');
-		return null;
+		console.error('No valid Spotify access token available - re-auth required');
+		throw new SpotifyAuthError('Re-authentication required');
 	}
 
 	try {
@@ -121,6 +125,13 @@ export async function spotifyFetch<T = unknown>(
 		});
 
 		if (!response.ok) {
+			// If token is invalid, throw auth error
+			if (response.status === 401) {
+				console.error('Spotify returned 401 - token invalid, cleaning up');
+				await deleteSpotifyTokens(userId);
+				throw new SpotifyAuthError('Re-authentication required');
+			}
+
 			console.error(
 				`Spotify API error: ${response.status}`,
 				await response.text()
@@ -140,9 +151,29 @@ export async function spotifyFetch<T = unknown>(
 
 		return (await response.json()) as T;
 	} catch (error) {
+		if (error instanceof SpotifyAuthError) {
+			throw error;
+		}
 		console.error('Error making Spotify API request:', error);
 		return null;
 	}
+}
+
+/**
+ * Custom error for Spotify authentication failures
+ */
+export class SpotifyAuthError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'SpotifyAuthError';
+	}
+}
+
+/**
+ * Delete Spotify tokens for a user (used when tokens are invalid)
+ */
+export async function deleteSpotifyTokens(userId: string): Promise<void> {
+	await db.delete(spotifyTokens).where(eq(spotifyTokens.userId, userId));
 }
 
 /**

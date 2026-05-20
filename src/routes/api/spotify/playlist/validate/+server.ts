@@ -28,13 +28,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Fetch playlist details using user's access token
 		const playlist = await spotifyFetch<{
-			name: string;
 			id: string;
+			name: string;
 			uri: string;
-			tracks: { total: number };
+			items: { total: number };
 		}>(
 			locals.user.id,
-			`/playlists/${playlistId}?fields=name,id,uri,tracks.total`
+			`/playlists/${playlistId}?fields=id,name,uri,items.total`
 		);
 
 		if (!playlist) {
@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({
 			name: playlist.name,
 			uri: playlist.uri,
-			trackCount: playlist.tracks?.total || 0
+			trackCount: playlist.items?.total || 0
 		});
 	} catch (error) {
 		console.error('Error validating playlist:', error);
