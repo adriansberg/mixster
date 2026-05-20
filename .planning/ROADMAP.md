@@ -37,7 +37,13 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
   2. `DELETE /playlists`, `/playlist/add`, `/playlist/toggle` routes no longer exist
   3. `SpotifyPlayerService`, `email.ts`, and dead type files are gone from the codebase
   4. `npx tsc --noEmit` passes with no errors after `user_playlists` table is dropped
-**Plans**: TBD
+**Plans**: 2 plans, 2 waves
+
+**Wave 1** *(route deletion — no dependencies)*
+- [ ] 02-01-PLAN.md — Delete dangerous/dead route files (SEC-01, SEC-02, SEC-03)
+
+**Wave 2** *(depends on Wave 1)*
+- [ ] 02-02-PLAN.md — Delete dead code files + drop userPlaylists DB table (SEC-04, SEC-05, SEC-06)
 
 ### Phase 3: Custom Playlist UX + Session
 **Goal**: Users can manage their own playlists and control session history — the core differentiator from physical Hitster is complete
