@@ -3,7 +3,7 @@ import { and, eq, gte } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import { playedSongs } from '$lib/server/db/schema';
-import { spotifyFetch } from '$lib/server/spotify';
+import { getSpotifyAccessToken, SpotifyAuthError, parseSpotifyPlaylistId } from '$lib/server/spotify';
 import { defaultPlaylists } from '$lib/config/playlists';
 
 import type { RequestEvent } from '@sveltejs/kit';
@@ -15,15 +15,16 @@ export async function POST(event: RequestEvent) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	const {
-		sessionId,
-		selectedDefaultPlaylists = [],
-		customPlaylistUris = []
-	} = await event.request.json();
+	try {
+		const {
+			sessionId,
+			selectedDefaultPlaylists = [],
+			customPlaylistUris = []
+		} = await event.request.json();
 
-	if (!sessionId || typeof sessionId !== 'string') {
-		return json({ error: 'Invalid session ID' }, { status: 400 });
-	}
+		if (!sessionId || typeof sessionId !== 'string') {
+			return json({ error: 'Invalid session ID' }, { status: 400 });
+		}
 
 	// Combine default playlists and custom playlists from localStorage
 	const allPlaylistUris = [
@@ -57,31 +58,89 @@ export async function POST(event: RequestEvent) {
 	let attempts = 0;
 	const maxAttempts = 10;
 
+	const fields = 'items(track(id,name,artists(name),album(release_date,images(url)))),total';
+
 	while (attempts < maxAttempts) {
 		// Pick random playlist
 		const randomPlaylistUri =
 			allPlaylistUris[Math.floor(Math.random() * allPlaylistUris.length)];
-		const playlistId = randomPlaylistUri.split(':')[2];
 
-		// Fetch playlist tracks
-		const playlistData = await spotifyFetch<SpotifyPlaylistResponse>(
-			user.id,
-			`/playlists/${playlistId}/tracks?limit=100&fields=items(track(id,name,artists,album,external_ids)),total`
-		);
-
-		if (
-			!playlistData ||
-			!playlistData.items ||
-			playlistData.items.length === 0
-		) {
+		// Parse playlist ID using parseSpotifyPlaylistId (handles URI and URL formats)
+		const playlistId = parseSpotifyPlaylistId(randomPlaylistUri);
+		if (!playlistId) {
 			attempts++;
 			continue;
 		}
 
-		// Filter out already played songs
+		// Get access token for raw fetch (needed to inspect HTTP status for 403 detection)
+		const accessToken = await getSpotifyAccessToken(user.id);
+		if (!accessToken) {
+			throw new SpotifyAuthError('Re-authentication required');
+		}
+
+		// Fetch total count cheaply (offset=0, limit=1)
+		const totalResponse = await fetch(
+			`https://api.spotify.com/v1/playlists/${playlistId}/items?offset=0&limit=1&fields=total`,
+			{ headers: { Authorization: `Bearer ${accessToken}` } }
+		);
+
+		if (totalResponse.status === 401) {
+			throw new SpotifyAuthError('Re-authentication required');
+		}
+		if (totalResponse.status === 403) {
+			return json(
+				{ error: 'playlistInaccessible', message: 'Copy this playlist to your Spotify library to use it' },
+				{ status: 403 }
+			);
+		}
+		if (!totalResponse.ok) {
+			attempts++;
+			continue;
+		}
+
+		const totalData = await totalResponse.json();
+		const total: number = totalData.total ?? 0;
+
+		// Random offset strategy: spread access across the whole playlist
+		const maxOffset = Math.max(1, total - 100);
+		const offset = Math.floor(Math.random() * maxOffset);
+
+		// Fetch 100-track window at random offset
+		const windowResponse = await fetch(
+			`https://api.spotify.com/v1/playlists/${playlistId}/items?offset=${offset}&limit=100&fields=${encodeURIComponent(fields)}`,
+			{ headers: { Authorization: `Bearer ${accessToken}` } }
+		);
+
+		if (windowResponse.status === 401) {
+			throw new SpotifyAuthError('Re-authentication required');
+		}
+		if (windowResponse.status === 403) {
+			return json(
+				{ error: 'playlistInaccessible', message: 'Copy this playlist to your Spotify library to use it' },
+				{ status: 403 }
+			);
+		}
+		if (!windowResponse.ok) {
+			attempts++;
+			continue;
+		}
+
+		const playlistData: SpotifyPlaylistResponse = await windowResponse.json();
+
+		if (!playlistData.items || playlistData.items.length === 0) {
+			attempts++;
+			continue;
+		}
+
+		// Filter out played songs and tracks missing release_date
 		const availableTracks = playlistData.items
-			.filter((item) => item.track && !playedTrackIds.includes(item.track.id))
-			.map((item) => item.track);
+			.filter(
+				(item) =>
+					item.track != null &&
+					!playedTrackIds.includes(item.track.id) &&
+					item.track.album?.release_date
+			)
+			.map((item) => item.track!);
 
 		if (availableTracks.length === 0) {
 			attempts++;
@@ -92,24 +151,9 @@ export async function POST(event: RequestEvent) {
 		const randomTrack =
 			availableTracks[Math.floor(Math.random() * availableTracks.length)];
 
-		// Get release year from track
-		let releaseYear: number | null = null;
-
-		// Try to get full track details for release date
-		const trackDetails = await spotifyFetch<SpotifyTrack>(
-			user.id,
-			`/tracks/${randomTrack.id}`
-		);
-
-		if (trackDetails?.album?.release_date) {
-			releaseYear = parseInt(trackDetails.album.release_date.split('-')[0], 10);
-		}
-
-		// If no release year found, skip this track
-		if (!releaseYear) {
-			attempts++;
-			continue;
-		}
+		// Extract release year and album art directly from /items response (no second /tracks call)
+		const releaseYear = parseInt(randomTrack.album.release_date.split('-')[0], 10);
+		const albumArt = randomTrack.album.images?.[0]?.url;
 
 		// Record the played song
 		await db.insert(playedSongs).values({
@@ -123,9 +167,9 @@ export async function POST(event: RequestEvent) {
 			track: {
 				id: randomTrack.id,
 				name: randomTrack.name,
-				artists: randomTrack.artists.map((a: { name: string }) => a.name),
+				artists: randomTrack.artists.map((a) => a.name),
 				releaseYear,
-				albumArt: trackDetails?.album?.images?.[0]?.url
+				albumArt
 			}
 		});
 	}
@@ -137,6 +181,16 @@ export async function POST(event: RequestEvent) {
 		},
 		{ status: 404 }
 	);
+	} catch (error) {
+		if (error instanceof SpotifyAuthError) {
+			return json({
+				error: 'Spotify authentication failed',
+				requiresReauth: true
+			}, { status: 401 });
+		}
+		console.error('Error getting random song:', error);
+		return json({ error: 'Failed to get random song' }, { status: 500 });
+	}
 }
 
 interface SpotifyPlaylistResponse {
@@ -146,20 +200,10 @@ interface SpotifyPlaylistResponse {
 			name: string;
 			artists: Array<{ name: string }>;
 			album: {
-				name: string;
+				release_date: string;
+				images: Array<{ url: string }>;
 			};
-		};
+		} | null;
 	}>;
 	total: number;
-}
-
-interface SpotifyTrack {
-	id: string;
-	name: string;
-	artists: Array<{ name: string }>;
-	album: {
-		name: string;
-		release_date: string;
-		images: Array<{ url: string }>;
-	};
 }
