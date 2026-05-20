@@ -6,7 +6,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 
 ## Phases
 
-- [ ] **Phase 1: Unblock the Game** - Migrate Spotify API + commit pending re-auth changes so the game loop works
+- [x] **Phase 1: Unblock the Game** - Migrate Spotify API + commit pending re-auth changes so the game loop works
 - [ ] **Phase 2: Security & Cleanup** - Remove dead/dangerous code and DB table so the codebase is clean before UX work
 - [ ] **Phase 3: Custom Playlist UX + Session** - Complete playlist add/toggle/remove UI and session history management
 - [ ] **Phase 4: Play Page Polish** - Inline errors, resilience improvements, TV-friendly layout
@@ -24,9 +24,9 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 **Plans**: 3 plans, 1 wave
 
 **Wave 1** *(all plans independent — execute in parallel)*
-- [ ] 01-01-PLAN.md — Migrate songs/random to /items endpoint with random offset and 403 detection (API-01)
-- [ ] 01-02-PLAN.md — Fix tracks.total → items.total in validate and track-counts routes (API-02)
-- [ ] 01-03-PLAN.md — Commit AUTH-01 re-auth infrastructure (SpotifyAuthError, reauth endpoint) (AUTH-01)
+- [x] 01-01-PLAN.md — Migrate songs/random to /items endpoint with random offset and 403 detection (API-01)
+- [x] 01-02-PLAN.md — Fix tracks.total → items.total in validate and track-counts routes (API-02)
+- [x] 01-03-PLAN.md — Commit AUTH-01 re-auth infrastructure (SpotifyAuthError, reauth endpoint) (AUTH-01)
 
 ### Phase 2: Security & Cleanup
 **Goal**: Dead and dangerous code is gone — no raw token endpoint, no IDOR-vulnerable routes, no dead DB table, clean TypeScript compile
@@ -69,7 +69,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Unblock the Game | 0/3 | Not started | - |
+| 1. Unblock the Game | 3/3 | Complete | 2026-05-21 |
 | 2. Security & Cleanup | 0/TBD | Not started | - |
 | 3. Custom Playlist UX + Session | 0/TBD | Not started | - |
 | 4. Play Page Polish | 0/TBD | Not started | - |
