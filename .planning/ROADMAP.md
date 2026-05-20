@@ -7,7 +7,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 ## Phases
 
 - [x] **Phase 1: Unblock the Game** - Migrate Spotify API + commit pending re-auth changes so the game loop works
-- [ ] **Phase 2: Security & Cleanup** - Remove dead/dangerous code and DB table so the codebase is clean before UX work
+- [x] **Phase 2: Security & Cleanup** - Remove dead/dangerous code and DB table so the codebase is clean before UX work (completed 2026-05-20)
 - [ ] **Phase 3: Custom Playlist UX + Session** - Complete playlist add/toggle/remove UI and session history management
 - [ ] **Phase 4: Play Page Polish** - Inline errors, resilience improvements, TV-friendly layout
 
@@ -43,7 +43,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 - [x] 02-01-PLAN.md — Delete dangerous/dead route files (SEC-01, SEC-02, SEC-03)
 
 **Wave 2** *(depends on Wave 1)*
-- [ ] 02-02-PLAN.md — Delete dead code files + drop userPlaylists DB table (SEC-04, SEC-05, SEC-06)
+- [x] 02-02-PLAN.md — Delete dead code files + drop userPlaylists DB table (SEC-04, SEC-05, SEC-06)
 
 ### Phase 3: Custom Playlist UX + Session
 **Goal**: Users can manage their own playlists and control session history — the core differentiator from physical Hitster is complete
@@ -76,6 +76,6 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Unblock the Game | 3/3 | Complete | 2026-05-21 |
-| 2. Security & Cleanup | 1/2 | In Progress|  |
+| 2. Security & Cleanup | 2/2 | Complete   | 2026-05-20 |
 | 3. Custom Playlist UX + Session | 0/TBD | Not started | - |
 | 4. Play Page Polish | 0/TBD | Not started | - |
