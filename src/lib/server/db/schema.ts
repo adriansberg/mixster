@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
 
 export const users = pgTable('users', {
@@ -42,24 +42,6 @@ export const spotifyTokens = pgTable('spotify_tokens', {
 	accessToken: text('access_token').notNull(),
 	refreshToken: text('refresh_token').notNull(),
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
-});
-
-// Note: userPlaylists table is no longer used - playlists stored in localStorage
-// Keeping for potential future use with authenticated custom playlists
-
-export const userPlaylists = pgTable('user_playlists', {
-	id: text('id')
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-	userId: text('user_id')
-		.notNull()
-		.references(() => users.id, { onDelete: 'cascade' }),
-	spotifyPlaylistUri: text('spotify_playlist_uri').notNull(),
-	name: text('name').notNull(),
-	isActive: boolean('is_active').notNull().default(true),
-	createdAt: timestamp('created_at', { withTimezone: true })
-		.notNull()
-		.defaultNow()
 });
 
 export const playedSongs = pgTable('played_songs', {
