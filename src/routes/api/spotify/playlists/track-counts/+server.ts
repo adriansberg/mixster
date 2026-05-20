@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { spotifyFetch } from '$lib/server/spotify';
+import { parseSpotifyPlaylistId, spotifyFetch } from '$lib/server/spotify';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -22,16 +22,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			playlistUris.map(async (uri: string) => {
 				try {
 					// Extract playlist ID from URI
-					const playlistId = uri.split(':').pop();
+					const playlistId = parseSpotifyPlaylistId(uri);
 					if (!playlistId) return;
 
-					const data = await spotifyFetch<{ tracks: { total: number } }>(
+					const data = await spotifyFetch<{ items: { total: number } }>(
 						userId,
-						`/playlists/${playlistId}?fields=tracks.total`
+						`/playlists/${playlistId}?fields=items.total`
 					);
 
 					if (data) {
-						trackCounts[uri] = data.tracks?.total || 0;
+						trackCounts[uri] = data.items?.total || 0;
 					} else {
 						trackCounts[uri] = 0;
 					}
