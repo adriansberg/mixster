@@ -5,14 +5,23 @@
 	import { goto } from '$app/navigation';
 	import { nanoid } from 'nanoid';
 	import { onMount } from 'svelte';
+	import {
+		parsePlaylistState,
+		migrateOldKeys,
+		STORAGE_KEY
+	} from '$lib/config/playlist-state';
 
 	let { data } = $props();
 
-	let selectedDefaults = $state<string[]>(
-		data.defaultPlaylists.map((p) => p.id)
-	);
+	let selectedDefaults = $state<string[]>([]);
 	let customPlaylists = $state<
-		Array<{ id: string; name: string; uri: string; trackCount: number }>
+		Array<{
+			id: string;
+			name: string;
+			uri: string;
+			trackCount: number;
+			enabled: boolean;
+		}>
 	>([]);
 	let playlistInput = $state('');
 	let addingPlaylist = $state(false);
@@ -22,7 +31,9 @@
 
 	// Calculate total songs from selected playlists
 	const totalCustomSongs = $derived(
-		customPlaylists.reduce((sum, p) => sum + p.trackCount, 0)
+		customPlaylists
+			.filter((p) => p.enabled)
+			.reduce((sum, p) => sum + p.trackCount, 0)
 	);
 	const totalDefaultSongs = $derived(
 		selectedDefaults.reduce((sum, id) => {
@@ -35,19 +46,37 @@
 	);
 	const totalSongs = $derived(totalCustomSongs + totalDefaultSongs);
 	const totalSelectedPlaylists = $derived(
-		selectedDefaults.length + customPlaylists.length
+		selectedDefaults.length + customPlaylists.filter((p) => p.enabled).length
 	);
 
-	// Load custom playlists from localStorage on mount
+	// Initialize from localStorage: migrate old keys then restore state
 	if (typeof window !== 'undefined') {
-		const stored = localStorage.getItem('shitster_custom_playlists');
-		if (stored) {
-			try {
-				customPlaylists = JSON.parse(stored);
-			} catch {
-				// Ignore parse errors
-			}
+		migrateOldKeys();
+		const raw = localStorage.getItem(STORAGE_KEY);
+		const parsed = parsePlaylistState(raw ?? '');
+
+		if (raw === null) {
+			// First-time user: select all defaults
+			selectedDefaults = data.defaultPlaylists.map((p) => p.id);
+		} else {
+			selectedDefaults = parsed.defaultSelected;
+			customPlaylists = parsed.custom;
 		}
+
+		// Write canonical key (idempotent — ensures key always exists after init)
+		savePlaylistState();
+	}
+
+	function savePlaylistState() {
+		if (typeof window === 'undefined') return;
+		localStorage.setItem(
+			STORAGE_KEY,
+			JSON.stringify({
+				version: 1,
+				defaultSelected: selectedDefaults,
+				custom: customPlaylists
+			})
+		);
 	}
 
 	onMount(async () => {
@@ -108,6 +137,14 @@
 		} else {
 			selectedDefaults = [...selectedDefaults, id];
 		}
+		savePlaylistState();
+	}
+
+	function toggleCustom(id: string) {
+		customPlaylists = customPlaylists.map((p) =>
+			p.id === id ? { ...p, enabled: !p.enabled } : p
+		);
+		savePlaylistState();
 	}
 
 	async function addCustomPlaylist() {
@@ -126,25 +163,22 @@
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.error || 'Failed to add playlist';
+				errorMessage = result.error || 'Kunne ikke legge til spilleliste';
 				return;
 			}
 
-			// Add to localStorage
 			const newPlaylist = {
 				id: nanoid(),
 				name: result.name,
 				uri: result.uri,
-				trackCount: result.trackCount || 0
+				trackCount: result.trackCount || 0,
+				enabled: true
 			};
 			customPlaylists = [...customPlaylists, newPlaylist];
-			localStorage.setItem(
-				'shitster_custom_playlists',
-				JSON.stringify(customPlaylists)
-			);
+			savePlaylistState();
 			playlistInput = '';
 		} catch {
-			errorMessage = 'Failed to add playlist';
+			errorMessage = 'Kunne ikke legge til spilleliste';
 		} finally {
 			addingPlaylist = false;
 		}
@@ -152,48 +186,28 @@
 
 	function removePlaylist(playlistId: string) {
 		customPlaylists = customPlaylists.filter((p) => p.id !== playlistId);
-		localStorage.setItem(
-			'shitster_custom_playlists',
-			JSON.stringify(customPlaylists)
-		);
+		savePlaylistState();
 	}
 
 	function startGame() {
-		const totalSelected = selectedDefaults.length + customPlaylists.length;
+		const totalEnabled =
+			selectedDefaults.length + customPlaylists.filter((p) => p.enabled).length;
 
-		if (totalSelected === 0) {
-			errorMessage = 'Please select at least one playlist';
+		if (totalEnabled === 0) {
+			errorMessage = 'Velg minst én spilleliste';
 			return;
 		}
 
 		// Check if user is authenticated
 		if (!data.isAuthenticated) {
-			// Save session data before redirecting to login
 			const sessionId = nanoid();
 			localStorage.setItem('shitster_session_id', sessionId);
-			localStorage.setItem(
-				'shitster_selected_defaults',
-				JSON.stringify(selectedDefaults)
-			);
-			localStorage.setItem(
-				'shitster_custom_playlists',
-				JSON.stringify(customPlaylists)
-			);
-			// Redirect to Spotify login
 			goto('/auth/login/spotify');
 			return;
 		}
 
 		const sessionId = nanoid();
 		localStorage.setItem('shitster_session_id', sessionId);
-		localStorage.setItem(
-			'shitster_selected_defaults',
-			JSON.stringify(selectedDefaults)
-		);
-		localStorage.setItem(
-			'shitster_custom_playlists',
-			JSON.stringify(customPlaylists)
-		);
 
 		goto('/play');
 	}
@@ -295,20 +309,34 @@
 				{#if customPlaylists.length > 0}
 					<div class="space-y-2 mt-4">
 						{#each customPlaylists as playlist (playlist.id)}
-							<div
-								class="flex items-center justify-between p-3 rounded-lg border bg-card/80 hover:bg-card transition-colors"
-							>
-								<div class="flex flex-col min-w-0 flex-1 mr-2">
-									<span class="font-medium truncate">{playlist.name}</span>
-									<span class="text-xs text-muted-foreground">
-										{playlist.trackCount}
-										{playlist.trackCount === 1 ? 'sang' : 'sanger'}
-									</span>
-								</div>
+							<div class="flex items-center gap-2">
+								<button
+									class="flex-1 p-3 md:p-4 rounded-lg border transition-all hover:scale-105 active:scale-95 text-left {playlist.enabled
+										? 'bg-linear-to-br from-purple-600 to-pink-500 text-white border-purple-400 shadow-lg'
+										: 'bg-card hover:bg-accent'}"
+									onclick={() => toggleCustom(playlist.id)}
+								>
+									<div class="flex flex-col min-w-0">
+										<span class="font-medium text-sm md:text-base truncate"
+											>{playlist.name}</span
+										>
+										<span
+											class="text-xs {playlist.enabled
+												? 'text-white/80'
+												: 'text-muted-foreground'}"
+										>
+											{playlist.trackCount}
+											{playlist.trackCount === 1 ? 'sang' : 'sanger'}
+										</span>
+									</div>
+								</button>
 								<Button
 									variant="ghost"
 									size="sm"
-									onclick={() => removePlaylist(playlist.id)}
+									onclick={(e) => {
+										e.stopPropagation();
+										removePlaylist(playlist.id);
+									}}
 								>
 									Fjern
 								</Button>
@@ -345,6 +373,9 @@
 				size="lg"
 				class="w-full text-xl text-white md:text-lg py-6 bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
 				style="font-family: 'Righteous', sans-serif;"
+				disabled={selectedDefaults.length +
+					customPlaylists.filter((p) => p.enabled).length ===
+					0}
 				onclick={startGame}
 			>
 				START SPILL
