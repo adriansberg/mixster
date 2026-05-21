@@ -26,7 +26,7 @@ export async function getSpotifyAccessToken(
 	// Check if token is expired or will expire in the next minute
 	const now = new Date();
 	const expiresIn = tokens.expiresAt.getTime() - now.getTime();
-	const needsRefresh = expiresIn < 60 * 1000; // Less than 1 minute
+	const needsRefresh = expiresIn < 5 * 60 * 1000; // Less than 5 minutes
 
 	if (!needsRefresh) {
 		return tokens.accessToken;
