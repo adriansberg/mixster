@@ -55,8 +55,14 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
   3. User can remove a custom playlist they added
   4. User can clear play history; the counter resets and playlist selections are fully preserved
   5. History clear prompts inline confirmation — no `window.confirm()` dialog
-**Plans**: TBD
+**Plans**: 2 plans, 2 waves
 **UI hint**: yes
+
+**Wave 1** *(schema module + setup page rewrite)*
+- [ ] 03-01-PLAN.md — Create consolidated playlist-state schema with migration + rebuild setup page toggles/persistence (PLAY-01, PLAY-02, PLAY-03, PLAY-04, PLAY-05)
+
+**Wave 2** *(depends on Wave 1 — play page consumes schema, setup page gains clear button)*
+- [ ] 03-02-PLAN.md — Play page enabled-only filter, songs-played counter, double-press clear on both pages (PLAY-06, SESS-01, SESS-02, SESS-03, SESS-04)
 
 ### Phase 4: Play Page Polish
 **Goal**: The play page is party-ready — no browser dialogs, inline error handling, URI validation on add, resilience to rate limits and expiring tokens, and a TV-readable layout
@@ -77,5 +83,5 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 |-------|----------------|--------|-----------|
 | 1. Unblock the Game | 3/3 | Complete | 2026-05-21 |
 | 2. Security & Cleanup | 2/2 | Complete   | 2026-05-20 |
-| 3. Custom Playlist UX + Session | 0/TBD | Not started | - |
+| 3. Custom Playlist UX + Session | 0/2 | Not started | - |
 | 4. Play Page Polish | 0/TBD | Not started | - |
