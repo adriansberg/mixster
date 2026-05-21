@@ -8,7 +8,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 
 - [x] **Phase 1: Unblock the Game** - Migrate Spotify API + commit pending re-auth changes so the game loop works
 - [x] **Phase 2: Security & Cleanup** - Remove dead/dangerous code and DB table so the codebase is clean before UX work (completed 2026-05-20)
-- [ ] **Phase 3: Custom Playlist UX + Session** - Complete playlist add/toggle/remove UI and session history management
+- [x] **Phase 3: Custom Playlist UX + Session** - Complete playlist add/toggle/remove UI and session history management (completed 2026-05-21)
 - [ ] **Phase 4: Play Page Polish** - Inline errors, resilience improvements, TV-friendly layout
 
 ## Phase Details
@@ -62,7 +62,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 - [x] 03-01-PLAN.md — Create consolidated playlist-state schema with migration + rebuild setup page toggles/persistence (PLAY-01, PLAY-02, PLAY-03, PLAY-04, PLAY-05)
 
 **Wave 2** *(depends on Wave 1 — play page consumes schema, setup page gains clear button)*
-- [ ] 03-02-PLAN.md — Play page enabled-only filter, songs-played counter, double-press clear on both pages (PLAY-06, SESS-01, SESS-02, SESS-03, SESS-04)
+- [x] 03-02-PLAN.md — Play page enabled-only filter, songs-played counter, double-press clear on both pages (PLAY-06, SESS-01, SESS-02, SESS-03, SESS-04)
 
 ### Phase 4: Play Page Polish
 **Goal**: The play page is party-ready — no browser dialogs, inline error handling, URI validation on add, resilience to rate limits and expiring tokens, and a TV-readable layout
@@ -83,5 +83,5 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 |-------|----------------|--------|-----------|
 | 1. Unblock the Game | 3/3 | Complete | 2026-05-21 |
 | 2. Security & Cleanup | 2/2 | Complete   | 2026-05-20 |
-| 3. Custom Playlist UX + Session | 1/2 | In Progress|  |
+| 3. Custom Playlist UX + Session | 2/2 | Complete   | 2026-05-21 |
 | 4. Play Page Polish | 0/TBD | Not started | - |
