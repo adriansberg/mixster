@@ -93,6 +93,9 @@ export async function POST(event: RequestEvent) {
 				{ status: 403 }
 			);
 		}
+		if (totalResponse.status === 429) {
+			return json({ error: 'Rate limited by Spotify', rateLimited: true }, { status: 429 });
+		}
 		if (!totalResponse.ok) {
 			attempts++;
 			continue;
@@ -119,6 +122,9 @@ export async function POST(event: RequestEvent) {
 				{ error: 'playlistInaccessible', message: 'Copy this playlist to your Spotify library to use it' },
 				{ status: 403 }
 			);
+		}
+		if (windowResponse.status === 429) {
+			return json({ error: 'Rate limited by Spotify', rateLimited: true }, { status: 429 });
 		}
 		if (!windowResponse.ok) {
 			attempts++;
