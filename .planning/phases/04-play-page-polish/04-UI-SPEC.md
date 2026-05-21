@@ -218,8 +218,10 @@ All three share the same state flag `requiresReauth`. Banner replaces `errorMess
 State priority for the single display slot:
 1. `requiresReauth` — re-auth banner (orange)
 2. `rateLimited` — rate limit banner (yellow)
-3. `errorMessage` — generic error banner (destructive/red)
-4. `showDeviceSelector && availableDevices.length > 0` — device selector panel
+3. `showDeviceSelector && availableDevices.length > 0` — device selector panel
+4. `errorMessage` — generic error banner (destructive/red)
+
+Note: device selector appears before errorMessage so onMount device-fetch errors don't obscure the device chooser — per Plan 04-02 Task 1 (Pitfall 5 fix).
 
 ### console.log Removal (UI-03)
 

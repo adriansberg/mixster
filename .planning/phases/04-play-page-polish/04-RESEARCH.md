@@ -176,7 +176,7 @@ let rateLimited = $state(false);     // NEW
 // Current: if (!totalResponse.ok) { attempts++; continue; }
 // Fixed:
 if (totalResponse.status === 429) {
-  return json({ error: 'Rate limited', rateLimited: true }, { status: 429 });
+  return json({ error: 'Rate limited by Spotify', rateLimited: true }, { status: 429 });
 }
 if (!totalResponse.ok) {
   attempts++;
@@ -399,17 +399,19 @@ async function getNextSong() {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **429 on windowResponse vs totalResponse**
    - What we know: two raw Spotify fetches per attempt in the loop
    - What's unclear: should windowResponse 429 also return immediately or just increment attempts?
    - Recommendation: Return immediately on either 429 — both signal Spotify overload for the whole session, not just that request.
+   - **RESOLVED: Both `totalResponse` and `windowResponse` get 429 short-circuit guards per Plan 04-01 Task 2.**
 
 2. **Retry-After header**
    - UI-SPEC notes: "Read and display wait time if present: 'Prøv igjen om X sekunder.'"
    - What's unclear: This was marked deferred in `<deferred>` section but partially mentioned in interaction contracts
    - Recommendation: Planner should treat this as optional enhancement within the 429 banner task if trivial; skip if adds complexity.
+   - **RESOLVED: Deferred to v2 per CONTEXT.md `<deferred>` section.**
 
 ---
 
