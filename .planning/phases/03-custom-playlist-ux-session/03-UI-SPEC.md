@@ -57,17 +57,17 @@ Source: existing codebase patterns + CONTEXT.md D-11 (TV-readable)
 | Role | Size | Weight | Line Height | Font | Usage |
 |------|------|--------|-------------|------|-------|
 | Body | 14px | 400 | 1.5 | System sans-serif | Playlist track counts, muted helper text |
-| Label | 16px | 400 | 1.5 | System sans-serif | Playlist names in cards, form labels |
-| Heading | 20px–24px | 600 | 1.2 | Righteous | Section headings ("Standard spillelister", "Egne spillelister") |
+| Label | 16px | 400 | 1.5 | System sans-serif | Playlist names in cards, form labels, logo (Monoton) |
+| Heading | 20px–24px | 700 | 1.2 | Righteous | Section headings ("Standard spillelister", "Egne spillelister") |
 | Display | 28px–36px | 700 | 1.1 | Righteous | Page title ("Spilloppsett"), CTA button text ("START SPILL") |
-| Logo | 28px–36px | 400 | 1.0 | Monoton | Play page "shitster" logo only |
-| Year badge | 48px–60px | 900 | 1.0 | Righteous | Release year on flip card front |
 
 Notes:
 - `text-sm` (14px) = body/muted-foreground copy
-- `text-base` (16px) = card labels, standard copy
+- `text-base` (16px) = card labels, standard copy, Monoton logo
 - `text-xl`/`text-2xl` (20px–24px) = section headings
 - `text-3xl`/`text-4xl` (28px–36px) = page headings and display CTAs
+- Logo ("shitster") uses Monoton at 16px weight 400 — differentiated by font family, not a separate type-scale entry
+- Two weights only: 400 (body, labels, logo) and 700 (headings, CTAs)
 
 Source: existing codebase — `src/routes/setup/+page.svelte`, `src/routes/play/+page.svelte`
 
@@ -136,6 +136,14 @@ Interaction contract (CONTEXT.md D-12, D-13):
 - Always visible — never hidden on hover
 - `variant="ghost"` `size="sm"` — small, non-destructive appearance
 - No confirmation required (non-destructive relative to game session)
+
+### Flip Card — Year Badge (component-specific override)
+
+- Size: 48px–60px (`text-5xl`/`text-6xl`) — single-element exception, not a type-scale entry
+- Weight: 700 (same as heading/display — no extra weight needed at this size)
+- Font: Righteous
+- Background: accent gradient pill
+- This size is scoped to the flip card component only and does not define a reusable type role
 
 ---
 
