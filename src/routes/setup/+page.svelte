@@ -28,6 +28,8 @@
 	let errorMessage = $state('');
 	let defaultTrackCounts = $state<Record<string, number>>({});
 	let loadingTrackCounts = $state(true);
+	let clearPending = $state(false);
+	let clearSuccess = $state(false);
 
 	// Calculate total songs from selected playlists
 	const totalCustomSongs = $derived(
@@ -189,6 +191,27 @@
 		savePlaylistState();
 	}
 
+	async function clearHistory() {
+		if (!clearPending) {
+			clearPending = true;
+			return;
+		}
+		clearPending = false;
+		try {
+			const res = await fetch('/api/spotify/history/clear', { method: 'POST' });
+			if (res.ok) {
+				clearSuccess = true;
+				setTimeout(() => {
+					clearSuccess = false;
+				}, 2000);
+			} else {
+				errorMessage = 'Klarte ikke å tømme historikk';
+			}
+		} catch {
+			errorMessage = 'Klarte ikke å tømme historikk';
+		}
+	}
+
 	function startGame() {
 		const totalEnabled =
 			selectedDefaults.length + customPlaylists.filter((p) => p.enabled).length;
@@ -348,6 +371,28 @@
 						Ingen egne spillelister lagt til ennå
 					</p>
 				{/if}
+			</div>
+		</div>
+
+		<!-- Spillhistorikk -->
+		<div class="space-y-4">
+			<div
+				class="bg-card/50 backdrop-blur-sm rounded-lg p-4 md:p-6 border shadow-lg"
+			>
+				<h2 class="text-xl md:text-2xl font-semibold mb-2">Spillhistorikk</h2>
+				<p class="text-sm text-muted-foreground mb-4">
+					Tøm spillehistorikken — spillelistene dine beholdes
+				</p>
+				<Button
+					variant={clearPending ? 'destructive' : 'outline'}
+					size="sm"
+					onclick={clearHistory}
+					onblur={() => {
+						clearPending = false;
+					}}
+				>
+					{clearSuccess ? 'Slettet!' : clearPending ? 'Bekreft?' : 'TØM HISTORIKK'}
+				</Button>
 			</div>
 		</div>
 
