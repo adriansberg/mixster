@@ -1,4 +1,4 @@
-# Shitster — Project Instructions
+# Mixster — Project Instructions
 
 ## Project
 
@@ -34,7 +34,7 @@ This project uses Get Shit Done (GSD) for structured planning and execution.
 - All Spotify API calls proxied server-side — browser never holds tokens
 - `spotifyFetch<T>()` in `src/lib/server/spotify.ts` is the one authenticated fetch wrapper
 - `SpotifyAuthError` thrown on irrecoverable auth failure → caught at API route boundary → `{ requiresReauth: true, status: 401 }`
-- Playlist state in localStorage (`shitster_playlists`) — NOT in DB
+- Playlist state in localStorage (`mixster_playlists`) — NOT in DB
 - Play history dedup in DB (`playedSongs` table, 7-day window)
 - Svelte 5 runes only — no Svelte stores for server state
 

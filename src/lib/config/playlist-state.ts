@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const STORAGE_KEY = 'shitster_playlists';
+export const STORAGE_KEY = 'mixster_playlists';
 
 export const PlaylistStateSchema = z.object({
 	version: z.literal(1),
@@ -47,8 +47,8 @@ export function parsePlaylistState(raw: string): PlaylistState {
 export function migrateOldKeys(): void {
 	if (typeof window === 'undefined') return;
 
-	const OLD_CUSTOM_KEY = 'shitster_custom_playlists';
-	const OLD_DEFAULTS_KEY = 'shitster_selected_defaults';
+	const OLD_CUSTOM_KEY = 'mixster_custom_playlists';
+	const OLD_DEFAULTS_KEY = 'mixster_selected_defaults';
 
 	const alreadyMigrated = localStorage.getItem(STORAGE_KEY) !== null;
 

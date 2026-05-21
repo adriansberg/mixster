@@ -1,6 +1,6 @@
-# Technology Stack — Spotify Party Jukebox (Shitster)
+# Technology Stack — Spotify Party Jukebox (Mixster)
 
-**Project:** Shitster
+**Project:** Mixster
 **Researched:** 2026-05-18
 **Overall confidence:** HIGH (Spotify API changes verified against official docs; SvelteKit patterns from official docs)
 
@@ -87,7 +87,7 @@ const trackCount = playlist.items?.total ?? 0;
 ### Recommended Schema
 
 ```typescript
-// Key: 'shitster_playlists' (consistent with existing shitster_* namespace)
+// Key: 'mixster_playlists' (consistent with existing mixster_* namespace)
 
 interface StoredPlaylist {
   id: string;          // spotify playlist ID (22-char base62)
@@ -128,7 +128,7 @@ const PlaylistsStorageSchema = z.object({
 function loadPlaylists(): PlaylistsStorage {
   if (typeof localStorage === 'undefined') return defaultStorage();
   try {
-    const raw = localStorage.getItem('shitster_playlists');
+    const raw = localStorage.getItem('mixster_playlists');
     if (!raw) return defaultStorage();
     const parsed = JSON.parse(raw);
     const result = PlaylistsStorageSchema.safeParse(parsed);
@@ -145,7 +145,7 @@ function loadPlaylists(): PlaylistsStorage {
 
 **Why Zod at read-time:** localStorage is untrusted (user can edit it, previous app version wrote different shape). Zod `.safeParse()` gives runtime type safety + automatic fallback to defaults. No separate version migration logic needed for MVP — just bump `version` literal and fallback clears state.
 
-**Why `isDefault: boolean` on stored playlists:** Avoids two separate storage keys (`shitster_default_enabled` + `shitster_custom_playlists`). Single source of truth for all playlist state. Simplifies toggle logic — same code path for default and custom playlists.
+**Why `isDefault: boolean` on stored playlists:** Avoids two separate storage keys (`mixster_default_enabled` + `mixster_custom_playlists`). Single source of truth for all playlist state. Simplifies toggle logic — same code path for default and custom playlists.
 
 **Why store `name` + `trackCount` at add-time:** Avoids fetching playlist metadata on every page load. Spotify API call happens once (when user pastes URL), result persisted. If user wants refresh, they remove and re-add.
 
@@ -167,7 +167,7 @@ export const playlistStore = {
   },
   save() {
     if (!browser) return;
-    localStorage.setItem('shitster_playlists', JSON.stringify(_state));
+    localStorage.setItem('mixster_playlists', JSON.stringify(_state));
   },
   // ... add, toggle, remove methods
 };

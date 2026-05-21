@@ -7,7 +7,7 @@
 ## Directory Layout
 
 ```
-shitster/
+mixster/
 ├── src/
 │   ├── app.d.ts                    # App.Locals type declarations (user, session)
 │   ├── hooks.server.ts             # Global request hook: session validation
@@ -197,11 +197,11 @@ shitster/
 - `UPPER_SNAKE_CASE` for env var names
 
 **localStorage Keys:**
-- `shitster_session_id` — nanoid game session identifier
-- `shitster_selected_defaults` — JSON array of default playlist IDs
-- `shitster_custom_playlists` — JSON array of `{ id, name, uri, trackCount }`
-- `shitster_default_track_counts` — cached track count map (24h TTL)
-- `shitster_default_track_counts_timestamp` — cache timestamp
+- `mixster_session_id` — nanoid game session identifier
+- `mixster_selected_defaults` — JSON array of default playlist IDs
+- `mixster_custom_playlists` — JSON array of `{ id, name, uri, trackCount }`
+- `mixster_default_track_counts` — cached track count map (24h TTL)
+- `mixster_default_track_counts_timestamp` — cache timestamp
 
 ## Where to Add New Code
 

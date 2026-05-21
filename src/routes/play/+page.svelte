@@ -38,7 +38,7 @@
 
 	onMount(async () => {
 		// Get session data from localStorage
-		sessionId = localStorage.getItem('shitster_session_id') || '';
+		sessionId = localStorage.getItem('mixster_session_id') || '';
 		const state = parsePlaylistState(localStorage.getItem(STORAGE_KEY) ?? '');
 		selectedDefaults = state.defaultSelected;
 		customPlaylistUris = state.custom
@@ -232,13 +232,13 @@
 	}
 
 	function endGame() {
-		localStorage.removeItem('shitster_session_id');
+		localStorage.removeItem('mixster_session_id');
 		goto('/');
 	}
 </script>
 
 <svelte:head>
-	<title>Play - Shitster</title>
+	<title>Play - Mixster</title>
 </svelte:head>
 
 <div class="min-h-screen p-4 md:p-8 bg-gray-950 relative">
@@ -254,7 +254,7 @@
 				class="text-3xl md:text-4xl font-bold bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent"
 				style="font-family: 'Monoton', sans-serif;"
 			>
-				shitster
+				mixster
 			</h1>
 			{#if songsPlayed > 0}
 				<span class="text-base text-muted-foreground hidden sm:block"

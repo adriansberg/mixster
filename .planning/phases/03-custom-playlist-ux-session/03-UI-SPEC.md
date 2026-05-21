@@ -66,7 +66,7 @@ Notes:
 - `text-base` (16px) = card labels, standard copy, Monoton logo
 - `text-xl`/`text-2xl` (20px–24px) = section headings
 - `text-3xl`/`text-4xl` (28px–36px) = page headings and display CTAs
-- Logo ("shitster") uses Monoton at 16px weight 400 — differentiated by font family, not a separate type-scale entry
+- Logo ("mixster") uses Monoton at 16px weight 400 — differentiated by font family, not a separate type-scale entry
 - Two weights only: 400 (body, labels, logo) and 700 (headings, CTAs)
 
 Source: existing codebase — `src/routes/setup/+page.svelte`, `src/routes/play/+page.svelte`
@@ -126,7 +126,7 @@ Interaction contract (CONTEXT.md D-12, D-13):
 
 ### Songs-Played Counter (CONTEXT.md D-10, D-11)
 
-- Location: play page header bar, adjacent to "shitster" logo
+- Location: play page header bar, adjacent to "mixster" logo
 - Format: `"X sanger spilt"` where X is the count
 - Size: `text-sm` (14px), `text-muted-foreground`, weight 400
 - Visible at all times during play — TV-readable distance requires adequate contrast
@@ -194,7 +194,7 @@ No visible UI change. On load, silently migrate old keys or reset to defaults. U
 
 ### Playlist Enable/Disable Toggle Persistence (CONTEXT.md D-05–D-06)
 
-Write to `shitster_playlists` on every toggle — no deferred save. No loading state needed (localStorage write is synchronous).
+Write to `mixster_playlists` on every toggle — no deferred save. No loading state needed (localStorage write is synchronous).
 
 ### START SPILL Disabled Guard (CONTEXT.md D-09)
 

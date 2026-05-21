@@ -65,7 +65,7 @@
 				class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-white mb-2 tracking-tight drop-shadow-2xl px-4"
 				style="font-family: 'Monoton', cursive; text-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2), 0 0 40px rgba(255,255,255,0.5); letter-spacing: 0.05em;"
 			>
-				shitster
+				mixster
 			</h1>
 			<div
 				class="h-1.5 md:h-2 bg-yellow-300 rounded-full mx-auto w-56 md:w-64 shadow-lg animate-scale-x"

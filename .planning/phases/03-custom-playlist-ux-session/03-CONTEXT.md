@@ -12,7 +12,7 @@ Complete the custom playlist management UI (add/toggle/remove for both default a
 - Custom playlist enable/disable toggle (matching default playlist UX)
 - Default playlist selection state persisted live to localStorage (not just at game start)
 - Setup page restores selections from localStorage on load
-- Consolidated `shitster_playlists` localStorage schema with versioning + Zod validation
+- Consolidated `mixster_playlists` localStorage schema with versioning + Zod validation
 - Songs-played counter in play page header (client-side, resets on clear)
 - History clear inline confirmation — double-press pattern, no `window.confirm()`
 - History clear button on both play page and setup page
@@ -31,14 +31,14 @@ Complete the custom playlist management UI (add/toggle/remove for both default a
 ## Implementation Decisions
 
 ### localStorage Schema (PLAY-05)
-- **D-01:** Consolidate all playlist state into a single `shitster_playlists` key with versioned schema: `{ version: 1, defaultSelected: string[], custom: [{ id: string, name: string, uri: string, trackCount: number, enabled: boolean }] }`.
-- **D-02:** Track counts cache (`shitster_default_track_counts` + `_timestamp`) stays as a separate cache key — it is not playlist state.
+- **D-01:** Consolidate all playlist state into a single `mixster_playlists` key with versioned schema: `{ version: 1, defaultSelected: string[], custom: [{ id: string, name: string, uri: string, trackCount: number, enabled: boolean }] }`.
+- **D-02:** Track counts cache (`mixster_default_track_counts` + `_timestamp`) stays as a separate cache key — it is not playlist state.
 - **D-03:** Zod schema validates on every read. On parse failure, silently reset to defaults (all default playlists selected, empty custom array).
-- **D-04:** On setup page load, read `shitster_playlists` and restore `defaultSelected` and `custom` arrays. Fall through to all-selected defaults if key doesn't exist or parse fails. Migrate old `shitster_custom_playlists` + `shitster_selected_defaults` keys if the new key is absent (one-time migration, then delete old keys).
+- **D-04:** On setup page load, read `mixster_playlists` and restore `defaultSelected` and `custom` arrays. Fall through to all-selected defaults if key doesn't exist or parse fails. Migrate old `mixster_custom_playlists` + `mixster_selected_defaults` keys if the new key is absent (one-time migration, then delete old keys).
 
 ### Playlist Toggle Persistence (PLAY-03, PLAY-06)
-- **D-05:** Write to `shitster_playlists` immediately on every toggle — not just at game start. A helper function handles the write.
-- **D-06:** Play page reads `shitster_playlists` to construct the song selection request. `customPlaylistUris` sent to `/api/spotify/songs/random` only includes custom playlists where `enabled === true`. `selectedDefaultPlaylists` is `defaultSelected` from the schema.
+- **D-05:** Write to `mixster_playlists` immediately on every toggle — not just at game start. A helper function handles the write.
+- **D-06:** Play page reads `mixster_playlists` to construct the song selection request. `customPlaylistUris` sent to `/api/spotify/songs/random` only includes custom playlists where `enabled === true`. `selectedDefaultPlaylists` is `defaultSelected` from the schema.
 
 ### Custom Playlist Enable/Disable UX (PLAY-03)
 - **D-07:** Custom playlist rows in setup page become clickable cards matching the default playlist toggle UX. Enabled = gradient border + highlight (same classes as selected defaults). Disabled = muted card style.
@@ -47,7 +47,7 @@ Complete the custom playlist management UI (add/toggle/remove for both default a
 
 ### Songs-Played Counter (SESS-04)
 - **D-10:** Track counter client-side as a `$state` variable in the play page. Increment by 1 on every successful `getNextSong()` call. Reset to 0 on successful history clear.
-- **D-11:** Show counter in the play page header bar as small text "X sanger spilt" (next to the "shitster" title). Visible at all times during play, TV-readable.
+- **D-11:** Show counter in the play page header bar as small text "X sanger spilt" (next to the "mixster" title). Visible at all times during play, TV-readable.
 
 ### History Clear UX (SESS-01, SESS-02, SESS-03)
 - **D-12:** Double-press confirmation pattern. First click: button text changes to "Bekreft?" with destructive red styling. Second click: executes clear. Clicking anywhere else (or waiting) cancels — reset back to "TØM HISTORIKK".
@@ -97,18 +97,18 @@ Complete the custom playlist management UI (add/toggle/remove for both default a
 - Norwegian UI copy throughout: "NESTE SANG", "VIS SANG", "TØM HISTORIKK", "START SPILL", "Fjern", "Legg til"
 - `errorMessage = $state('')` pattern — inline error display, no toast library
 - localStorage reads happen either in the script body (before mount) or in `onMount` — use `onMount` for async; use script body for sync reads
-- Track counts cache: separate keys `shitster_default_track_counts` + `shitster_default_track_counts_timestamp` (24h TTL) — do not touch
+- Track counts cache: separate keys `mixster_default_track_counts` + `mixster_default_track_counts_timestamp` (24h TTL) — do not touch
 
 ### Integration Points
-- Setup page → play page: data flows via localStorage (`shitster_playlists` after migration, `shitster_session_id` unchanged)
-- Play page reads `shitster_playlists` in `onMount` to build the songs/random request body
+- Setup page → play page: data flows via localStorage (`mixster_playlists` after migration, `mixster_session_id` unchanged)
+- Play page reads `mixster_playlists` in `onMount` to build the songs/random request body
 - `songs/random` POST body: `{ sessionId, selectedDefaultPlaylists: string[], customPlaylistUris: string[] }` — interface unchanged, client filters enabled
 - Default playlist toggle visual: active = `bg-linear-to-br from-purple-600 to-pink-500 text-white border-purple-400 shadow-lg`, inactive = `bg-card hover:bg-accent`
 
 ### Known Issues Being Fixed
 - `clearHistory()` in play page uses `alert()` — replace with double-press + "Slettet!" feedback
-- `selectedDefaults` in setup page always starts as all-selected (doesn't read localStorage) — fix by reading `shitster_playlists.defaultSelected` on load
-- Custom playlists have no `enabled` field in current schema — migration needed when reading old `shitster_custom_playlists` key (add `enabled: true` to all entries)
+- `selectedDefaults` in setup page always starts as all-selected (doesn't read localStorage) — fix by reading `mixster_playlists.defaultSelected` on load
+- Custom playlists have no `enabled` field in current schema — migration needed when reading old `mixster_custom_playlists` key (add `enabled: true` to all entries)
 - Playlist state only written to localStorage in `startGame()` — move writes to each toggle handler
 
 </code_context>
@@ -130,7 +130,7 @@ Complete the custom playlist management UI (add/toggle/remove for both default a
     }))
   });
   ```
-- Migration: if `shitster_playlists` absent but `shitster_custom_playlists` exists, parse old key and add `enabled: true` to each entry; write to new key; delete old keys.
+- Migration: if `mixster_playlists` absent but `mixster_custom_playlists` exists, parse old key and add `enabled: true` to each entry; write to new key; delete old keys.
 - Double-press clear: `let clearPending = $state(false)`. First click sets `clearPending = true`. Second click (while `clearPending`) executes clear + shows "Slettet!". `onclick:outside` or `onblur` resets `clearPending`.
 - Songs-played counter: `let songsPlayed = $state(0)`. Increment in `getNextSong()` on success. Reset in `clearHistory()` on success.
 

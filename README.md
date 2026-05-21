@@ -1,220 +1,93 @@
-# Shitster
+# Mixster
 
-A modern SvelteKit application with authentication, database, PWA support, and deployment configurations.
+A Spotify-powered party game inspired by [Hitster](https://hitstergame.com). One screen, no phones needed — the app plays a random song from your Spotify playlists, the group debates the release year, and the host flips the card to reveal the answer.
 
-## ✨ Features
+**The key difference from the original:** bring any Spotify playlist. No physical cards, no preset content.
 
-- **SvelteKit 5** - Latest version with Svelte Runes ($state, $derived, $effect)
-- **TypeScript** - Fully typed with strict mode
-- **Authentication** - Email/password signup/login with session management
-- **OAuth Ready** - Arctic integration for Google, GitHub, Apple (routes not implemented)
-- **Database** - PostgreSQL with Drizzle ORM
-- **Session Management** - Custom implementation using Oslo packages
-- **Email** - Resend integration with dev console logging
-- **Styling** - Tailwind CSS 4.x with OKLCH colors
-- **Dark Mode** - Light/dark theme with system detection
-- **UI Components** - shadcn-svelte compatible components with bits-ui
-- **Code Quality** - Biome for fast linting and formatting
-- **PWA** - Progressive Web App support with Vite PWA
-- **Docker** - Local development and production containers
-- **Deployment** - Vercel adapter configured
+## How it works
 
-## 🚀 Quick Start
+1. Host logs in with Spotify and picks playlists (default HITSTER playlists or your own)
+2. Hit **START FØRSTE SANG** — the app picks a random song and starts playing it on your Spotify device
+3. Group listens and guesses the release year
+4. Host flips the card to reveal artist, song title, and year
+5. Repeat
 
-### Prerequisites
+No scoring. No phones. Just music and social play.
 
-- Node.js 20 or later
-- pnpm 9 or later
-- Docker (for local PostgreSQL)
+## Requirements
 
-### Setup
+- [Spotify Premium](https://spotify.com/premium) account (required for playback control via Spotify API)
+- A Spotify app with OAuth credentials (see setup below)
+- PostgreSQL database
+- Node.js 20+
+
+## Setup
+
+### 1. Clone and install
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Copy environment template
-cp .env.example .env
-
-# Generate auth secret and update .env
-openssl rand -base64 32
-# Copy the output and set AUTH_SECRET in .env
-
-# Start PostgreSQL database
-docker-compose up -d
-
-# Push database schema
-pnpm db:push
-
-# Start development server
-pnpm dev
+git clone https://github.com/yourusername/mixster
+cd mixster
+npm install
 ```
 
-Visit http://localhost:5173 and create an account!
+### 2. Create a Spotify app
 
-## 📝 Environment Variables
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new app
+3. Add `http://127.0.0.1:5173/auth/callback/spotify` as a Redirect URI (and your production URL when deploying)
+4. Copy your **Client ID** and **Client Secret**
 
-Create a `.env` file with these variables:
+### 3. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Fill in `.env`:
 
 ```env
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bootstrap
+DATABASE_URL=postgresql://user:password@localhost:5432/mixster
 
-# Auth
-AUTH_SECRET=your-generated-secret-here
-PUBLIC_APP_URL=http://localhost:5173
+SPOTIFY_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_SECRET=your_client_secret
 
-# Email (Resend)
-RESEND_API_KEY=your-key-here # Optional for dev (logs to console)
-
-# OAuth (Optional)
-# GOOGLE_CLIENT_ID=
-# GOOGLE_CLIENT_SECRET=
-# GITHUB_CLIENT_ID=
-# GITHUB_CLIENT_SECRET=
-# APPLE_CLIENT_ID=
-# APPLE_CLIENT_SECRET=
+PUBLIC_APP_URL=http://127.0.0.1:5173
 ```
 
-## 📦 Available Scripts
+### 4. Set up the database
 
 ```bash
-# Development
-pnpm dev              # Start dev server on http://localhost:5173
-pnpm build            # Build for production
-pnpm preview          # Preview production build
-
-# Database
-pnpm db:generate      # Generate migration files
-pnpm db:migrate       # Run migrations
-pnpm db:push          # Push schema changes (dev only)
-pnpm db:studio        # Open Drizzle Studio
-
-# Code Quality
-pnpm lint             # Run Biome linter
-pnpm format           # Format code with Biome
-pnpm check            # Type check with svelte-check
+npm run db:push
 ```
 
-## 🗄️ Database Schema
+### 5. Run
 
-The bootstrap includes these tables:
+```bash
+npm run dev
+```
 
-- **users** - User accounts with email, password, name, avatar
-- **sessions** - User sessions with expiration
-- **email_verification_codes** - OTP codes for email verification
-- **password_reset_tokens** - Tokens for password reset flow
-- **oauth_accounts** - OAuth provider linkage
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
-## 🎨 Theming
+## Deploying to Vercel
 
-The template uses OKLCH colors for consistent appearance across light and dark modes:
-
-- Colors defined in `src/app.css` as CSS variables
-- Theme toggle component in `src/lib/components/theme-toggle.svelte`
-- Theme store in `src/lib/stores/theme.ts`
-- System preference detection on load
-
-To customize colors, edit the CSS variables in `src/app.css`.
-
-## 🔐 Authentication
-
-### Current Implementation
-
-- **Signup** - `/auth/signup` with email/password
-- **Login** - `/auth/login` with email/password
-- **Logout** - `/auth/logout` POST endpoint
-- **Protected Routes** - Dashboard example at `/dashboard`
-- **Session Management** - 30-day sessions with 15-day refresh window
-
-### Email Verification
-
-Backend complete, frontend page not implemented. To add:
-
-1. Create `/auth/verify-email/+page.svelte`
-2. Display form to enter 6-digit code
-3. Submit code to verify endpoint
-
-### Password Reset
-
-Backend tokens complete, frontend pages not implemented. To add:
-
-1. Create `/auth/forgot-password` page
-2. Create `/auth/reset-password/[token]` page
-3. Implement form submissions
-
-### OAuth
-
-Providers configured in `src/lib/server/auth/providers.ts`, but callback routes not created. To add OAuth:
-
-1. Set environment variables for provider credentials
-2. Create `/auth/login/[provider]/+server.ts` for OAuth initiation
-3. Create `/auth/callback/[provider]/+server.ts` for OAuth callback
-4. Handle account linking/creation
-
-## 🚢 Deployment
-
-### Vercel (Recommended)
-
-1. Push your code to GitHub
+1. Push to GitHub
 2. Import project in Vercel
-3. Add environment variables
-4. Deploy
+3. Add environment variables (same as `.env`, with production values)
+4. Add your Vercel deployment URL as a Redirect URI in your Spotify app
 
-Or use Vercel CLI:
+## Tech stack
 
-```bash
-vercel
-```
+- [SvelteKit 2](https://kit.svelte.dev) + Svelte 5 (runes)
+- [Drizzle ORM](https://orm.drizzle.team) + PostgreSQL
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [Arctic](https://arcticjs.dev) for Spotify OAuth (PKCE)
+- Vercel
 
-### Docker
+## Notes
 
-Build and run with Docker:
-
-```bash
-# Build image
-docker build -t my-app .
-
-# Run container
-docker run -p 3000:3000 --env-file .env my-app
-```
-
-For production, use a managed PostgreSQL service like:
-
-- Neon (recommended for Vercel)
-- Supabase
-- Railway
-- AWS RDS
-
-## 📱 PWA Configuration
-
-PWA is configured but icon files need to be added:
-
-1. Create icons at 192x192 and 512x512
-2. Place in `static/` folder
-3. Update `vite.config.ts` manifest paths
-4. Icons will be cached by service worker
-
-## 🏗️ Tech Stack
-
-| Category         | Technology               |
-| ---------------- | ------------------------ |
-| Framework        | SvelteKit 5              |
-| Language         | TypeScript               |
-| Database         | PostgreSQL + Drizzle ORM |
-| Auth             | Oslo packages + Arctic   |
-| Styling          | Tailwind CSS 4.x         |
-| Components       | shadcn-svelte + bits-ui  |
-| Email            | Resend                   |
-| Linting          | Biome                    |
-| PWA              | @vite-pwa/sveltekit      |
-| Deployment       | Vercel Adapter           |
-| Password Hashing | @node-rs/argon2          |
-
-## 🤝 Contributing
-
-This is a template repository. Fork it and customize for your needs!
-
-## 📄 License
-
-MIT
+- Playlist selections are stored in `localStorage` — tied to the browser, intentional for party use
+- Play history (7-day dedup) is stored in the database so songs don't repeat within a session
+- All Spotify API calls are proxied server-side — the browser never holds Spotify tokens
+- Norwegian UI copy by design (the game is Norwegian in origin)
+- Requires Spotify Premium for playback control (Spotify API limitation, not ours)

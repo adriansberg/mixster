@@ -27,8 +27,8 @@ function makeLocalStorageShim(): Storage {
 }
 
 describe('STORAGE_KEY', () => {
-	it('equals shitster_playlists', () => {
-		expect(STORAGE_KEY).toBe('shitster_playlists');
+	it('equals mixster_playlists', () => {
+		expect(STORAGE_KEY).toBe('mixster_playlists');
 	});
 });
 
@@ -151,7 +151,7 @@ describe('migrateOldKeys', () => {
 		expect(() => migrateOldKeys()).not.toThrow();
 	});
 
-	it('migrates old shitster_custom_playlists with enabled: true when shitster_playlists absent', () => {
+	it('migrates old mixster_custom_playlists with enabled: true when mixster_playlists absent', () => {
 		const shim = makeLocalStorageShim();
 		globalThis.localStorage = shim;
 		// Simulate window existing
@@ -160,7 +160,7 @@ describe('migrateOldKeys', () => {
 		const oldCustom = [
 			{ id: 'c1', name: 'Old Custom', uri: 'spotify:playlist:old1', trackCount: 30 }
 		];
-		shim.setItem('shitster_custom_playlists', JSON.stringify(oldCustom));
+		shim.setItem('mixster_custom_playlists', JSON.stringify(oldCustom));
 
 		migrateOldKeys();
 
@@ -170,16 +170,16 @@ describe('migrateOldKeys', () => {
 		expect(parsed.custom[0].enabled).toBe(true);
 		expect(parsed.custom[0].id).toBe('c1');
 		// Old key removed
-		expect(shim.getItem('shitster_custom_playlists')).toBeNull();
+		expect(shim.getItem('mixster_custom_playlists')).toBeNull();
 	});
 
-	it('migrates old shitster_selected_defaults when shitster_playlists absent', () => {
+	it('migrates old mixster_selected_defaults when mixster_playlists absent', () => {
 		const shim = makeLocalStorageShim();
 		globalThis.localStorage = shim;
 		globalThis.window = globalThis as unknown as Window & typeof globalThis;
 
 		const oldDefaults = ['norway', 'sweden'];
-		shim.setItem('shitster_selected_defaults', JSON.stringify(oldDefaults));
+		shim.setItem('mixster_selected_defaults', JSON.stringify(oldDefaults));
 
 		migrateOldKeys();
 
@@ -188,26 +188,26 @@ describe('migrateOldKeys', () => {
 		const parsed = JSON.parse(newVal!);
 		expect(parsed.defaultSelected).toEqual(oldDefaults);
 		// Old key removed
-		expect(shim.getItem('shitster_selected_defaults')).toBeNull();
+		expect(shim.getItem('mixster_selected_defaults')).toBeNull();
 	});
 
-	it('leaves shitster_playlists alone when already present, still removes old keys', () => {
+	it('leaves mixster_playlists alone when already present, still removes old keys', () => {
 		const shim = makeLocalStorageShim();
 		globalThis.localStorage = shim;
 		globalThis.window = globalThis as unknown as Window & typeof globalThis;
 
 		const existing = JSON.stringify({ version: 1, defaultSelected: ['norway'], custom: [] });
 		shim.setItem(STORAGE_KEY, existing);
-		shim.setItem('shitster_custom_playlists', JSON.stringify([{ id: 'c1', name: 'Old', uri: 'x', trackCount: 1 }]));
-		shim.setItem('shitster_selected_defaults', JSON.stringify(['sweden']));
+		shim.setItem('mixster_custom_playlists', JSON.stringify([{ id: 'c1', name: 'Old', uri: 'x', trackCount: 1 }]));
+		shim.setItem('mixster_selected_defaults', JSON.stringify(['sweden']));
 
 		migrateOldKeys();
 
 		// New key unchanged
 		expect(shim.getItem(STORAGE_KEY)).toBe(existing);
 		// Old keys removed
-		expect(shim.getItem('shitster_custom_playlists')).toBeNull();
-		expect(shim.getItem('shitster_selected_defaults')).toBeNull();
+		expect(shim.getItem('mixster_custom_playlists')).toBeNull();
+		expect(shim.getItem('mixster_selected_defaults')).toBeNull();
 	});
 
 	it('deletes malformed old key and falls through to defaults for that slot', () => {
@@ -215,11 +215,11 @@ describe('migrateOldKeys', () => {
 		globalThis.localStorage = shim;
 		globalThis.window = globalThis as unknown as Window & typeof globalThis;
 
-		shim.setItem('shitster_custom_playlists', 'NOT VALID JSON');
+		shim.setItem('mixster_custom_playlists', 'NOT VALID JSON');
 
 		migrateOldKeys();
 
 		// Malformed old key should be removed
-		expect(shim.getItem('shitster_custom_playlists')).toBeNull();
+		expect(shim.getItem('mixster_custom_playlists')).toBeNull();
 	});
 });

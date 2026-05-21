@@ -84,9 +84,9 @@
 
 	onMount(async () => {
 		// Check cache first
-		const cached = localStorage.getItem('shitster_default_track_counts');
+		const cached = localStorage.getItem('mixster_default_track_counts');
 		const cacheTimestamp = localStorage.getItem(
-			'shitster_default_track_counts_timestamp'
+			'mixster_default_track_counts_timestamp'
 		);
 
 		// Use cache if less than 24 hours old
@@ -119,11 +119,11 @@
 
 				// Cache the results
 				localStorage.setItem(
-					'shitster_default_track_counts',
+					'mixster_default_track_counts',
 					JSON.stringify(defaultTrackCounts)
 				);
 				localStorage.setItem(
-					'shitster_default_track_counts_timestamp',
+					'mixster_default_track_counts_timestamp',
 					Date.now().toString()
 				);
 			}
@@ -254,13 +254,13 @@
 		// Check if user is authenticated
 		if (!data.isAuthenticated) {
 			const sessionId = nanoid();
-			localStorage.setItem('shitster_session_id', sessionId);
+			localStorage.setItem('mixster_session_id', sessionId);
 			goto('/auth/login/spotify');
 			return;
 		}
 
 		const sessionId = nanoid();
-		localStorage.setItem('shitster_session_id', sessionId);
+		localStorage.setItem('mixster_session_id', sessionId);
 
 		goto('/play');
 	}

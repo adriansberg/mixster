@@ -1,4 +1,4 @@
-# Requirements: Shitster
+# Requirements: Mixster
 
 **Defined:** 2026-05-18
 **Core Value:** Any party with a Spotify account can play a Hitster-style game with their own playlists — no physical cards, no preset content.
@@ -27,7 +27,7 @@
 - [ ] **PLAY-02**: Added playlist shows resolved name and track count (fetched from Spotify)
 - [ ] **PLAY-03**: User can toggle any playlist (default or custom) on/off; state persists across page reloads
 - [ ] **PLAY-04**: User can remove a custom playlist
-- [ ] **PLAY-05**: Playlist state stored in consolidated localStorage schema (`shitster_playlists`, versioned, Zod-validated)
+- [ ] **PLAY-05**: Playlist state stored in consolidated localStorage schema (`mixster_playlists`, versioned, Zod-validated)
 - [ ] **PLAY-06**: Random song selection only draws from enabled playlists
 - [ ] **PLAY-07**: URI validation rejects invalid input early (400) — no silent 10-attempt failure
 

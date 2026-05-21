@@ -1,4 +1,4 @@
-# Research Summary — Shitster
+# Research Summary — Mixster
 
 **Synthesized:** 2026-05-18
 **Sources:** STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md, PROJECT.md, CONCERNS.md
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-Shitster has a working core and a clear path to polish. The server-side Spotify proxy architecture is correct and must not change. Playlist state in localStorage is the right call for single-device party use. The flip card, play/pause, device selector, and dedup logic are all solid.
+Mixster has a working core and a clear path to polish. The server-side Spotify proxy architecture is correct and must not change. Playlist state in localStorage is the right call for single-device party use. The flip card, play/pause, device selector, and dedup logic are all solid.
 
 **One critical blocker breaks the game today:** Spotify's February 2026 API changes are live. The current `songs/random` endpoint fetches tracks from the 6 default HITSTER playlists using the deprecated `/tracks` endpoint and `.tracks.items` field access. Those playlists are third-party owned, so the new access restriction makes track listing impossible — the game loop is broken for all default playlists. Fix this first.
 
@@ -45,7 +45,7 @@ Beyond the blocker, work splits into: (1) dead code cleanup to close security ho
 |----------|---------------|------------|
 | Spotify playlist metadata fetch | `GET /playlists/{id}?fields=id,name,items.total,snapshot_id` | HIGH |
 | localStorage validation | Zod `safeParse` at read-time with `version` guard; fallback to defaults on mismatch | HIGH |
-| localStorage schema | Single `shitster_playlists` key: `{ version: 1, playlists: StoredPlaylist[] }` | HIGH |
+| localStorage schema | Single `mixster_playlists` key: `{ version: 1, playlists: StoredPlaylist[] }` | HIGH |
 | `StoredPlaylist` shape | `{ id, uri, name, trackCount, enabled, addedAt, isDefault }` | HIGH |
 | Svelte 5 localStorage | Raw `$state` + `browser` guard in `.svelte.ts` module — no library | HIGH |
 | PWA manifest | `display: "fullscreen"`, `orientation: "landscape"`, `display_override` fallback chain | HIGH |
@@ -105,8 +105,8 @@ Constraint: delete routes before dropping DB table — schema import breaks Type
 
 Current 5 keys → 2 keys:
 ```
-shitster_playlists      → { version: 1, playlists: StoredPlaylist[] }
-shitster_session_id     → string (unchanged)
+mixster_playlists      → { version: 1, playlists: StoredPlaylist[] }
+mixster_session_id     → string (unchanged)
 ```
 
 `enabled` field: coerce `p.enabled ?? true` at read time — no version bump needed.

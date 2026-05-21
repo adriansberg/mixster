@@ -1,8 +1,8 @@
-# Shitster
+# Mixster
 
 ## What This Is
 
-Shitster is a Spotify-powered party jukebox game inspired by the board game Hitster. One person hosts on a single screen — the app plays a random song from selected Spotify playlists, the group debates the release year, and the host flips the card to reveal the answer. No scoring, no phones needed — just music and social play.
+Mixster is a Spotify-powered party jukebox game inspired by the board game Hitster. One person hosts on a single screen — the app plays a random song from selected Spotify playlists, the group debates the release year, and the host flips the card to reveal the answer. No scoring, no phones needed — just music and social play.
 
 ## Core Value
 
@@ -45,7 +45,7 @@ Any party with a Spotify account can play a Hitster-style game with their own pl
 - Play history (dedup) lives in DB (`playedSongs` table) — persists across page reloads, manually clearable
 - Default playlists: 6 official HITSTER playlists (Norway, Sweden, Nordics Rock, Soundtracks, UK Guilty Pleasures, Platinum)
 - Technical debt to address before UX work: dead `userPlaylists` DB table + 3 routes with IDOR bugs; dead `SpotifyPlayerService` + token endpoint; dead email scaffolding
-- App name in code: "shitster" (localStorage keys: `shitster_*`); Norwegian UI copy ("NESTE SANG", "VIS SANG", "START SPILL")
+- App name in code: "mixster" (localStorage keys: `mixster_*`); Norwegian UI copy ("NESTE SANG", "VIS SANG", "START SPILL")
 
 ## Constraints
 

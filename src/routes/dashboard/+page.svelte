@@ -46,7 +46,7 @@
 				Velkommen, {data.user.displayName || 'der'}!
 			</h2>
 			<p class="text-muted-foreground text-sm md:text-base">
-				Dette er dashboardet ditt. Velkommen til Shitster!
+				Dette er dashboardet ditt. Velkommen til Mixster!
 			</p>
 
 			<div class="pt-4">
@@ -55,7 +55,7 @@
 						size="lg"
 						class="w-full sm:w-auto text-base md:text-lg py-6 px-8 bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
 					>
-						🎵 Spill Shitster
+						🎵 Spill Mixster
 					</Button>
 				</a>
 			</div>

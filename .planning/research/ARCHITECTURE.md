@@ -101,23 +101,23 @@ No errors = safe.
 
 ## localStorage Schema Versioning
 
-### Current Schema (all keys prefixed `shitster_`)
+### Current Schema (all keys prefixed `mixster_`)
 
 | Key | Written by | Read by | Type |
 |-----|-----------|---------|------|
-| `shitster_session_id` | setup (startGame) | play (onMount) | string (nanoid) |
-| `shitster_selected_defaults` | setup (startGame) | play (onMount) | `string[]` (playlist IDs) |
-| `shitster_custom_playlists` | setup (addCustomPlaylist, removePlaylist, startGame) | play (getNextSong) | `Array<{id,name,uri,trackCount}>` |
-| `shitster_default_track_counts` | setup (onMount, cache write) | setup (onMount, cache read) | `Record<string, number>` |
-| `shitster_default_track_counts_timestamp` | setup (onMount) | setup (onMount) | string (ms timestamp) |
+| `mixster_session_id` | setup (startGame) | play (onMount) | string (nanoid) |
+| `mixster_selected_defaults` | setup (startGame) | play (onMount) | `string[]` (playlist IDs) |
+| `mixster_custom_playlists` | setup (addCustomPlaylist, removePlaylist, startGame) | play (getNextSong) | `Array<{id,name,uri,trackCount}>` |
+| `mixster_default_track_counts` | setup (onMount, cache write) | setup (onMount, cache read) | `Record<string, number>` |
+| `mixster_default_track_counts_timestamp` | setup (onMount) | setup (onMount) | string (ms timestamp) |
 
-`shitster_custom_playlists` is the only key shared across two pages and likely to be affected by schema changes.
+`mixster_custom_playlists` is the only key shared across two pages and likely to be affected by schema changes.
 
 ### Schema Change Risks
 
-**`shitster_custom_playlists` object shape:** Current shape is `{id, name, uri, trackCount}`. If a future field is added (e.g., `isEnabled: boolean` for playlist toggle UI), old localStorage values won't have it. `play/+page.svelte` maps directly with `p.uri` — missing fields silently produce `undefined`, which may cause runtime errors downstream.
+**`mixster_custom_playlists` object shape:** Current shape is `{id, name, uri, trackCount}`. If a future field is added (e.g., `isEnabled: boolean` for playlist toggle UI), old localStorage values won't have it. `play/+page.svelte` maps directly with `p.uri` — missing fields silently produce `undefined`, which may cause runtime errors downstream.
 
-**`shitster_selected_defaults` array:** Contains playlist IDs from `src/lib/config/playlists.ts`. If the hard-coded default playlist list changes (playlist removed from Spotify, ID updated), stale IDs are sent to `/api/spotify/songs/random`, which will silently fail that playlist's fetch.
+**`mixster_selected_defaults` array:** Contains playlist IDs from `src/lib/config/playlists.ts`. If the hard-coded default playlist list changes (playlist removed from Spotify, ID updated), stale IDs are sent to `/api/spotify/songs/random`, which will silently fail that playlist's fetch.
 
 ### Recommended Approach: Defensive Read with Version Guard
 
@@ -128,23 +128,23 @@ Use a version key rather than field-by-field migration:
 const SCHEMA_VERSION = 1;
 
 export function readCustomPlaylists(): CustomPlaylist[] {
-  const version = parseInt(localStorage.getItem('shitster_schema_version') || '0');
+  const version = parseInt(localStorage.getItem('mixster_schema_version') || '0');
   if (version < SCHEMA_VERSION) {
     // Nuke stale keys on schema bump
-    localStorage.removeItem('shitster_custom_playlists');
-    localStorage.removeItem('shitster_selected_defaults');
-    localStorage.setItem('shitster_schema_version', String(SCHEMA_VERSION));
+    localStorage.removeItem('mixster_custom_playlists');
+    localStorage.removeItem('mixster_selected_defaults');
+    localStorage.setItem('mixster_schema_version', String(SCHEMA_VERSION));
     return [];
   }
   try {
-    return JSON.parse(localStorage.getItem('shitster_custom_playlists') || '[]');
+    return JSON.parse(localStorage.getItem('mixster_custom_playlists') || '[]');
   } catch {
     return [];
   }
 }
 ```
 
-**When to bump version:** Any structural change to `shitster_custom_playlists` object shape. Adding optional fields with safe defaults does NOT require a bump if read code handles missing fields explicitly.
+**When to bump version:** Any structural change to `mixster_custom_playlists` object shape. Adding optional fields with safe defaults does NOT require a bump if read code handles missing fields explicitly.
 
 **For `isEnabled` addition** (upcoming playlist toggle feature): add `isEnabled ?? true` at read time — no version bump needed. Example:
 
@@ -155,7 +155,7 @@ const customPlaylists = raw.map(p => ({
 }));
 ```
 
-**`endGame` bug:** Currently removes `shitster_session_id` and `shitster_selected_defaults` but NOT `shitster_custom_playlists`. This is intentional (custom playlists persist between games) but inconsistent with session cleanup. Document the contract: session keys clear on `endGame`; playlist keys are persistent until explicitly removed by user.
+**`endGame` bug:** Currently removes `mixster_session_id` and `mixster_selected_defaults` but NOT `mixster_custom_playlists`. This is intentional (custom playlists persist between games) but inconsistent with session cleanup. Document the contract: session keys clear on `endGame`; playlist keys are persistent until explicitly removed by user.
 
 ---
 

@@ -74,7 +74,7 @@
 
 ### Pitfall 6: localStorage parse throws on corrupted data — silently skips playlists
 
-**What goes wrong:** `JSON.parse(localStorage.getItem('shitster_custom_playlists'))` (play/+page.svelte:89) has no try/catch. If the stored value is malformed (partial write, browser extension interference, manual edit), `JSON.parse` throws, the error propagates up the `getNextSong` catch block, and `errorMessage = 'Failed to load next song'` is shown — misleading because no network call has even started.
+**What goes wrong:** `JSON.parse(localStorage.getItem('mixster_custom_playlists'))` (play/+page.svelte:89) has no try/catch. If the stored value is malformed (partial write, browser extension interference, manual edit), `JSON.parse` throws, the error propagates up the `getNextSong` catch block, and `errorMessage = 'Failed to load next song'` is shown — misleading because no network call has even started.
 
 **Prevention:** Wrap every `localStorage.getItem` + `JSON.parse` in try/catch. On parse failure, log and treat as empty array (`[]`). Provide a helper: `function safeLocalJSON(key, fallback)`.
 
@@ -114,7 +114,7 @@
 
 ### Pitfall 10: `endGame` removes session and defaults but not custom playlists
 
-**What goes wrong:** `endGame` (play/+page.svelte:214-218) clears `shitster_session_id` and `shitster_selected_defaults` but not `shitster_custom_playlists`. On next setup, custom playlists reappear. Intended as convenience, but if the host accidentally ends the game, then starts a new setup, custom playlists from the old session are pre-loaded without the host noticing.
+**What goes wrong:** `endGame` (play/+page.svelte:214-218) clears `mixster_session_id` and `mixster_selected_defaults` but not `mixster_custom_playlists`. On next setup, custom playlists reappear. Intended as convenience, but if the host accidentally ends the game, then starts a new setup, custom playlists from the old session are pre-loaded without the host noticing.
 
 **Prevention:** Document this as intentional behavior in a code comment. Alternatively, add an explicit "Clear everything" path in the session management UX.
 

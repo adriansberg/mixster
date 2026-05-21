@@ -100,7 +100,7 @@ let clearSuccess = $state(false);
 **localStorage sync read (script body, before mount)** (lines 42–51):
 ```typescript
 if (typeof window !== 'undefined') {
-  const stored = localStorage.getItem('shitster_custom_playlists');
+  const stored = localStorage.getItem('mixster_custom_playlists');
   if (stored) {
     try {
       customPlaylists = JSON.parse(stored);
@@ -110,7 +110,7 @@ if (typeof window !== 'undefined') {
   }
 }
 ```
-Replace with: call `migrateOldKeys()` then `parsePlaylistState(localStorage.getItem('shitster_playlists') ?? '')` and assign `defaultSelected` + `custom` arrays. Fall through to defaults on parse failure (handled inside `parsePlaylistState`).
+Replace with: call `migrateOldKeys()` then `parsePlaylistState(localStorage.getItem('mixster_playlists') ?? '')` and assign `defaultSelected` + `custom` arrays. Fall through to defaults on parse failure (handled inside `parsePlaylistState`).
 
 **Async onMount pattern** (lines 53–103): unchanged — keep track-count cache logic as-is.
 
@@ -126,7 +126,7 @@ function toggleDefault(id: string) {
   savePlaylistState();
 }
 ```
-New `savePlaylistState()` helper writes `shitster_playlists` key using consolidated schema.
+New `savePlaylistState()` helper writes `mixster_playlists` key using consolidated schema.
 
 **Custom playlist card toggle pattern** — new, copy visual classes from default toggle:
 ```svelte
@@ -213,8 +213,8 @@ let clearSuccess = $state(false);
 **onMount localStorage read** (lines 34–36): replace old keys with new schema:
 ```typescript
 onMount(async () => {
-  sessionId = localStorage.getItem('shitster_session_id') || '';
-  const state = parsePlaylistState(localStorage.getItem('shitster_playlists') ?? '');
+  sessionId = localStorage.getItem('mixster_session_id') || '';
+  const state = parsePlaylistState(localStorage.getItem('mixster_playlists') ?? '');
   selectedDefaults = state.defaultSelected;
   // D-06: only enabled custom playlists
   customPlaylistUris = state.custom.filter(p => p.enabled).map(p => p.uri);
@@ -264,7 +264,7 @@ async function clearHistory() {
 **Header bar — counter + button** (lines 232–248): add counter text and update button:
 ```svelte
 <div class="flex items-center justify-center sm:justify-between">
-  <h1 class="...">shitster</h1>
+  <h1 class="...">mixster</h1>
   {#if songsPlayed > 0}
     <span class="text-xs text-muted-foreground hidden sm:block">
       {songsPlayed} {songsPlayed === 1 ? 'sang' : 'sanger'} spilt
@@ -287,8 +287,8 @@ async function clearHistory() {
 **endGame** (lines 214–218): update to remove new localStorage key too:
 ```typescript
 function endGame() {
-  localStorage.removeItem('shitster_session_id');
-  // Do NOT remove shitster_playlists — selections persist across games (D-15)
+  localStorage.removeItem('mixster_session_id');
+  // Do NOT remove mixster_playlists — selections persist across games (D-15)
   goto('/');
 }
 ```
@@ -335,10 +335,10 @@ variant={clearPending ? 'destructive' : 'outline'}
 
 ### localStorage write helper pattern
 **Source:** `src/routes/setup/+page.svelte` lines 141–144 (current `localStorage.setItem` calls)
-**Apply to:** new `savePlaylistState()` in setup page — centralise all writes to `shitster_playlists`
+**Apply to:** new `savePlaylistState()` in setup page — centralise all writes to `mixster_playlists`
 ```typescript
 function savePlaylistState() {
-  localStorage.setItem('shitster_playlists', JSON.stringify({
+  localStorage.setItem('mixster_playlists', JSON.stringify({
     version: 1,
     defaultSelected: selectedDefaults,
     custom: customPlaylists

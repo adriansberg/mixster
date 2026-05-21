@@ -28,10 +28,10 @@
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Consolidate into single versioned key | `shitster_playlists` with Zod validation | ✓ |
+| Consolidate into single versioned key | `mixster_playlists` with Zod validation | ✓ |
 | Keep scattered keys, just fix persistence | Simpler, misses PLAY-05 | |
 
-**User's choice:** Consolidate into single `shitster_playlists` key
+**User's choice:** Consolidate into single `mixster_playlists` key
 
 **Notes:** Track counts cache stays separate. Schema: `{ version: 1, defaultSelected: string[], custom: [{id, name, uri, trackCount, enabled}] }`.
 
@@ -77,7 +77,7 @@
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| In the header bar next to 'shitster' | Small "X sanger spilt" text in top bar | ✓ |
+| In the header bar next to 'mixster' | Small "X sanger spilt" text in top bar | ✓ |
 | Below the card, above controls | More prominent, more vertical clutter | |
 | You decide | Claude places it | |
 

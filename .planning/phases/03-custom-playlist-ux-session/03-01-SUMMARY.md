@@ -33,7 +33,7 @@ metrics:
 
 # Phase 3 Plan 1: Playlist State Schema + Setup Page Migration Summary
 
-Consolidated localStorage playlist state into a single Zod-validated `shitster_playlists` schema, with one-time migration from old keys and full enable/disable toggle parity for custom playlists on the setup page.
+Consolidated localStorage playlist state into a single Zod-validated `mixster_playlists` schema, with one-time migration from old keys and full enable/disable toggle parity for custom playlists on the setup page.
 
 ## Tasks Completed
 
@@ -46,21 +46,21 @@ Consolidated localStorage playlist state into a single Zod-validated `shitster_p
 ## What Was Built
 
 **`src/lib/config/playlist-state.ts`** — new module exporting:
-- `STORAGE_KEY = 'shitster_playlists'`
+- `STORAGE_KEY = 'mixster_playlists'`
 - `PlaylistStateSchema` — Zod schema with `version: 1`, `defaultSelected: string[]`, `custom: [{id, name, uri, trackCount, enabled}]`
 - `DEFAULT_PLAYLIST_STATE` — `{version:1, defaultSelected:[], custom:[]}`
 - `parsePlaylistState(raw)` — silent fallback on any parse/validation failure
-- `migrateOldKeys()` — SSR-safe one-time migration from old `shitster_custom_playlists` + `shitster_selected_defaults` keys
+- `migrateOldKeys()` — SSR-safe one-time migration from old `mixster_custom_playlists` + `mixster_selected_defaults` keys
 
 **`src/routes/setup/+page.svelte`** — refactored to:
 - Import and use `parsePlaylistState`, `migrateOldKeys`, `STORAGE_KEY`
-- Restore selections from `shitster_playlists` on load (first-time: all defaults)
+- Restore selections from `mixster_playlists` on load (first-time: all defaults)
 - `savePlaylistState()` helper writes on every toggle, add, remove
 - `toggleCustom(id)` — new handler flips `enabled` field + persists
 - Custom playlist cards now match default toggle visual (gradient active state)
 - Fjern button always visible, `stopPropagation` prevents toggle-on-remove
 - START SPILL disabled when `selectedDefaults.length + enabledCustoms.length === 0`
-- Old keys `shitster_custom_playlists` and `shitster_selected_defaults` fully removed
+- Old keys `mixster_custom_playlists` and `mixster_selected_defaults` fully removed
 
 ## Deviations from Plan
 
@@ -78,15 +78,15 @@ Consolidated localStorage playlist state into a single Zod-validated `shitster_p
 - `npx tsc --noEmit` — passes (exit 0)
 - `npx vitest run src/lib/config/playlist-state.test.ts` — 18 tests pass
 - Acceptance criteria grepping: all pass
-  - `STORAGE_KEY = 'shitster_playlists'`: 1
+  - `STORAGE_KEY = 'mixster_playlists'`: 1
   - `version: z.literal(1)`: 1
   - `enabled: z.boolean()`: 1
   - `safeParse` count: 2
   - `migrateOldKeys()` in setup page: 1
   - `savePlaylistState` in setup page: 6
   - `toggleCustom` in setup page: 2
-  - `shitster_custom_playlists` in setup page: 0 (gone)
-  - `shitster_selected_defaults` in setup page: 0 (gone)
+  - `mixster_custom_playlists` in setup page: 0 (gone)
+  - `mixster_selected_defaults` in setup page: 0 (gone)
   - `customPlaylists.filter((p) => p.enabled)`: 4
   - `enabled: true` in addCustomPlaylist: 1
   - `stopPropagation`: 1

@@ -62,7 +62,7 @@
 - Session stored as opaque cookie (`session`); token hashed with SHA-256 before DB lookup
 - Spotify tokens stored per-user in DB; auto-refreshed by `getSpotifyAccessToken()` on every API call
 - `SpotifyAuthError` thrown when tokens are irrecoverably invalid; API routes catch it and return `{ requiresReauth: true }` — client redirects to `/auth/login/spotify`
-- Custom playlists stored client-side in `localStorage` (`shitster_custom_playlists`), sent as URIs in POST body to `/api/spotify/songs/random`
+- Custom playlists stored client-side in `localStorage` (`mixster_custom_playlists`), sent as URIs in POST body to `/api/spotify/songs/random`
 - No Svelte stores used for server state; all reactive state is Svelte 5 `$state` runes within page components
 
 ## Layers
@@ -108,7 +108,7 @@
 
 1. User visits `/` (`src/routes/+page.svelte`) — clicks "START SPILL" → `goto('/setup')`
 2. `/setup` load fn (`src/routes/setup/+page.server.ts`) — checks `locals.user` + DB token, redirects to Spotify login if missing; returns `defaultPlaylists`
-3. Setup page stores selections in `localStorage` (`shitster_selected_defaults`, `shitster_custom_playlists`, `shitster_session_id`)
+3. Setup page stores selections in `localStorage` (`mixster_selected_defaults`, `mixster_custom_playlists`, `mixster_session_id`)
 4. `/play` load fn (`src/routes/play/+page.server.ts`) — same auth guard
 5. Play page `onMount` → `GET /api/spotify/devices` → returns available Spotify devices
 6. User clicks "NESTE SANG" → `POST /api/spotify/songs/random` with `{ sessionId, selectedDefaultPlaylists, customPlaylistUris }`
@@ -186,7 +186,7 @@
 - **Server-only modules:** Everything under `src/lib/server/` uses `$lib/server/*` imports and must not be imported from client components (SvelteKit enforces this)
 - **Global state:** `db` singleton in `src/lib/server/db/index.ts` (module-level `postgres` client); `spotify` OAuth provider singleton in `src/lib/server/auth/providers.ts`
 - **Circular imports:** None detected
-- **localStorage coupling:** `/play` and `/setup` pages read/write `localStorage` keys (`shitster_session_id`, `shitster_selected_defaults`, `shitster_custom_playlists`, `shitster_default_track_counts`) — these keys are an implicit API between the two pages
+- **localStorage coupling:** `/play` and `/setup` pages read/write `localStorage` keys (`mixster_session_id`, `mixster_selected_defaults`, `mixster_custom_playlists`, `mixster_default_track_counts`) — these keys are an implicit API between the two pages
 - **No Svelte stores for server state:** All persistent state flows through DB or `localStorage`; Svelte stores only used for theme (`src/lib/stores/theme.ts`)
 
 ## Anti-Patterns

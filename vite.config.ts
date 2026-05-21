@@ -8,9 +8,9 @@ export default defineConfig({
 		SvelteKitPWA({
 			registerType: 'autoUpdate',
 			manifest: {
-				name: 'Shitster',
-				short_name: 'Shitster',
-				description: 'Shitster - A modern SvelteKit application',
+				name: 'Mixster',
+				short_name: 'Mixster',
+				description: 'Mixster - A modern SvelteKit application',
 				theme_color: '#ffffff',
 				background_color: '#ffffff',
 				display: 'standalone',

@@ -118,7 +118,7 @@
 
 ### [LOW] `endGame` only removes two of three localStorage keys
 
-- Symptoms: `shitster_custom_playlists` persists after ending a game. On next setup, custom playlists reappear — intended, but the session data being cleared while custom playlists remain creates an inconsistent state if the user then re-enters setup.
+- Symptoms: `mixster_custom_playlists` persists after ending a game. On next setup, custom playlists reappear — intended, but the session data being cleared while custom playlists remain creates an inconsistent state if the user then re-enters setup.
 - Files: `src/routes/play/+page.svelte:214-218`
 
 ---

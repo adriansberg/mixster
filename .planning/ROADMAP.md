@@ -1,8 +1,8 @@
-# Roadmap: Shitster
+# Roadmap: Mixster
 
 ## Overview
 
-Shitster is a Spotify-powered party jukebox game. The game loop is broken today due to a Spotify API change — fix that first, then clean up security debt, then complete the custom playlist UX, then polish the play page. Four phases, sequential, all v1 requirements covered.
+Mixster is a Spotify-powered party jukebox game. The game loop is broken today due to a Spotify API change — fix that first, then clean up security debt, then complete the custom playlist UX, then polish the play page. Four phases, sequential, all v1 requirements covered.
 
 ## Phases
 

@@ -18,7 +18,7 @@ key_files:
 decisions:
   - "clearPending reset to false before fetch so rapid third click requires fresh double-press"
   - "songsPlayed increments after currentTrack assignment — not after playSong call"
-  - "endGame removes shitster_session_id only; shitster_playlists untouched (D-15)"
+  - "endGame removes mixster_session_id only; mixster_playlists untouched (D-15)"
   - "Spillhistorikk section reuses errorMessage state from setup page — no new state"
 metrics:
   duration: ~8min
@@ -29,7 +29,7 @@ metrics:
 
 # Phase 3 Plan 2: Session UX — Counter + Double-Press Clear Summary
 
-Play page consumes consolidated `shitster_playlists` schema with enabled-only custom filtering, songs-played counter in header, and inline double-press TØM HISTORIKK on both play and setup pages — no alert() or window.confirm() anywhere in the clear flow.
+Play page consumes consolidated `mixster_playlists` schema with enabled-only custom filtering, songs-played counter in header, and inline double-press TØM HISTORIKK on both play and setup pages — no alert() or window.confirm() anywhere in the clear flow.
 
 ## Tasks Completed
 
@@ -42,14 +42,14 @@ Play page consumes consolidated `shitster_playlists` schema with enabled-only cu
 
 **`src/routes/play/+page.svelte`** — refactored to:
 - Import `parsePlaylistState`, `STORAGE_KEY` from `$lib/config/playlist-state`
-- `onMount` reads `shitster_playlists`, populates `selectedDefaults` and `customPlaylistUris` (enabled customs only — D-06)
+- `onMount` reads `mixster_playlists`, populates `selectedDefaults` and `customPlaylistUris` (enabled customs only — D-06)
 - `customPlaylistUris` cached in `$state` — not re-read on every `getNextSong` call
 - `songsPlayed` counter: increments after `currentTrack = data.track` on success, resets to 0 on successful clear
 - Header shows `X sang spilt` / `X sanger spilt` (desktop: `hidden sm:block`, mobile bottom bar)
 - `clearHistory()` double-press: first click sets `clearPending=true`; second click POSTs, shows `Slettet!` for 2s, resets counter
 - `onblur` cancels pending confirmation
-- `endGame` removes `shitster_session_id` only — `shitster_playlists` preserved
-- Old keys `shitster_selected_defaults` and `shitster_custom_playlists` fully removed
+- `endGame` removes `mixster_session_id` only — `mixster_playlists` preserved
+- Old keys `mixster_selected_defaults` and `mixster_custom_playlists` fully removed
 - All 2 original `alert()` calls in clearHistory removed (the plan spec expected 3 reauth alerts to remain, but those did not exist in the actual source — see deviation note)
 
 **`src/routes/setup/+page.svelte`** — additions:
@@ -75,7 +75,7 @@ Play page consumes consolidated `shitster_playlists` schema with enabled-only cu
 - `svelte-check --tsconfig ./tsconfig.json` — 0 errors, 0 warnings (both tasks)
 - `grep -c "alert(" src/routes/play/+page.svelte` → 0 (all alerts removed)
 - `grep -cE "window\.confirm|alert\(" src/routes/setup/+page.svelte` → 0
-- `grep -c "shitster_selected_defaults|shitster_custom_playlists" play/+page.svelte setup/+page.svelte` → 0 (old keys gone)
+- `grep -c "mixster_selected_defaults|mixster_custom_playlists" play/+page.svelte setup/+page.svelte` → 0 (old keys gone)
 - `grep -c "parsePlaylistState" src/routes/play/+page.svelte` → 2 (import + usage)
 - `grep -c "clearPending" src/routes/play/+page.svelte` → 10 (well above minimum 4)
 - `grep -c "clearPending" src/routes/setup/+page.svelte` → 7 (well above minimum 4)
