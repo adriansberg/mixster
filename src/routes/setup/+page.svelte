@@ -26,6 +26,7 @@
 	let playlistInput = $state('');
 	let addingPlaylist = $state(false);
 	let errorMessage = $state('');
+	let uriValidationError = $state('');
 	let defaultTrackCounts = $state<Record<string, number>>({});
 	let loadingTrackCounts = $state(true);
 	let clearPending = $state(false);
@@ -149,10 +150,39 @@
 		savePlaylistState();
 	}
 
+	function isValidSpotifyPlaylistInput(input: string): boolean {
+		if (input.startsWith('spotify:playlist:')) {
+			return true;
+		}
+		try {
+			const url = new URL(input);
+			if (
+				url.hostname === 'open.spotify.com' &&
+				url.pathname.startsWith('/playlist/')
+			) {
+				return true;
+			}
+		} catch {
+			// not a URL
+		}
+		if (/^[a-zA-Z0-9]{22}$/.test(input)) {
+			return true;
+		}
+		return false;
+	}
+
 	async function addCustomPlaylist() {
 		if (!playlistInput.trim()) return;
 
 		errorMessage = '';
+		uriValidationError = '';
+
+		if (!isValidSpotifyPlaylistInput(playlistInput.trim())) {
+			uriValidationError =
+				'Ugyldig Spotify-lenke. Lim inn en spillelistelenke fra Spotify.';
+			return;
+		}
+
 		addingPlaylist = true;
 
 		try {
@@ -327,6 +357,9 @@
 					{#if errorMessage}
 						<p class="text-sm text-destructive">{errorMessage}</p>
 					{/if}
+					{#if uriValidationError}
+						<p class="text-sm text-destructive mt-1">{uriValidationError}</p>
+					{/if}
 				</form>
 
 				{#if customPlaylists.length > 0}
@@ -391,7 +424,11 @@
 						clearPending = false;
 					}}
 				>
-					{clearSuccess ? 'Slettet!' : clearPending ? 'Bekreft?' : 'TØM HISTORIKK'}
+					{clearSuccess
+						? 'Slettet!'
+						: clearPending
+							? 'Bekreft?'
+							: 'TØM HISTORIKK'}
 				</Button>
 			</div>
 		</div>
