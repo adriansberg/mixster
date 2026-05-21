@@ -8,6 +8,8 @@
 	let isRevealed = $state(false);
 	let loading = $state(false);
 	let errorMessage = $state('');
+	let requiresReauth = $state(false);
+	let rateLimited = $state(false);
 	let sessionId = $state('');
 	let selectedDefaults: string[] = $state([]);
 	let customPlaylistUris = $state<string[]>([]);
@@ -39,7 +41,9 @@
 		sessionId = localStorage.getItem('shitster_session_id') || '';
 		const state = parsePlaylistState(localStorage.getItem(STORAGE_KEY) ?? '');
 		selectedDefaults = state.defaultSelected;
-		customPlaylistUris = state.custom.filter((p) => p.enabled).map((p) => p.uri);
+		customPlaylistUris = state.custom
+			.filter((p) => p.enabled)
+			.map((p) => p.uri);
 
 		if (!sessionId) {
 			goto('/setup');
@@ -50,12 +54,18 @@
 		try {
 			const devicesResponse = await fetch('/api/spotify/devices');
 			const data = await devicesResponse.json();
-			console.log('data', data);
+
+			// Check if re-authentication is required
+			if (data.requiresReauth) {
+				requiresReauth = true;
+				return;
+			}
+
 			availableDevices = data.devices || [];
 
 			if (availableDevices.length === 0) {
 				errorMessage =
-					'No Spotify devices found. Open Spotify on a device first.';
+					'Ingen Spotify-enheter funnet. Åpne Spotify på en enhet først.';
 				showDeviceSelector = true;
 			} else if (availableDevices.length === 1) {
 				// Auto-select if only one device
@@ -72,13 +82,15 @@
 			}
 		} catch (error) {
 			console.error('Failed to get devices:', error);
-			errorMessage = 'Failed to connect to Spotify. Please try again.';
+			errorMessage = 'Klarte ikke å hente Spotify-enheter. Prøv igjen.';
 		}
 	});
 
 	async function getNextSong() {
 		loading = true;
 		errorMessage = '';
+		requiresReauth = false;
+		rateLimited = false;
 		isRevealed = false;
 
 		try {
@@ -92,9 +104,21 @@
 				})
 			});
 
+			if (response.status === 429) {
+				rateLimited = true;
+				return;
+			}
+
 			if (!response.ok) {
 				const error = await response.json();
-				errorMessage = error.error || 'Failed to get next song';
+
+				if (error.requiresReauth) {
+					requiresReauth = true;
+					return;
+				}
+
+				errorMessage =
+					error.error || 'Kunne ikke laste neste sang. Prøv igjen.';
 				return;
 			}
 
@@ -107,7 +131,7 @@
 				await playSong(currentTrack.id);
 			}
 		} catch {
-			errorMessage = 'Failed to load next song';
+			errorMessage = 'Kunne ikke laste neste sang. Prøv igjen.';
 		} finally {
 			loading = false;
 		}
@@ -129,7 +153,14 @@
 
 			if (!playResponse.ok) {
 				const error = await playResponse.json();
-				errorMessage = `Playback failed: ${error.error || 'Unknown error'}`;
+
+				if (error.requiresReauth) {
+					requiresReauth = true;
+					return;
+				}
+
+				errorMessage =
+					'Avspilling feilet. Sjekk at Spotify er åpen på enheten.';
 				return;
 			}
 
@@ -137,7 +168,7 @@
 			errorMessage = '';
 		} catch (error) {
 			console.error('Playback error:', error);
-			errorMessage = 'Failed to start playback';
+			errorMessage = 'Avspilling feilet. Sjekk at Spotify er åpen på enheten.';
 		}
 	}
 
@@ -226,7 +257,7 @@
 				shitster
 			</h1>
 			{#if songsPlayed > 0}
-				<span class="text-sm text-muted-foreground hidden sm:block"
+				<span class="text-base text-muted-foreground hidden sm:block"
 					>{songsPlayed}
 					{songsPlayed === 1 ? 'sang' : 'sanger'} spilt</span
 				>
@@ -240,15 +271,49 @@
 						clearPending = false;
 					}}
 				>
-					{clearSuccess ? 'Slettet!' : clearPending ? 'Bekreft?' : 'TØM HISTORIKK'}
+					{clearSuccess
+						? 'Slettet!'
+						: clearPending
+							? 'Bekreft?'
+							: 'TØM HISTORIKK'}
 				</Button>
-				<Button variant="outline" size="sm" onclick={endGame}>AVSLUTT SPILL</Button>
+				<Button variant="outline" size="sm" onclick={endGame}
+					>AVSLUTT SPILL</Button
+				>
 			</div>
 		</div>
 
 		<!-- Player Status -->
 		<div class="text-center">
-			{#if showDeviceSelector && availableDevices.length > 0}
+			{#if requiresReauth}
+				<div
+					class="bg-orange-500/10 border border-orange-500/50 rounded-lg p-4 space-y-3"
+				>
+					<p class="text-base font-semibold">Spotify-økt utløpt</p>
+					<p class="text-sm text-muted-foreground">
+						Logg inn på nytt for å fortsette.
+					</p>
+					<Button variant="outline" onclick={() => goto('/auth/login/spotify')}
+						>Logg inn igjen</Button
+					>
+				</div>
+			{:else if rateLimited}
+				<div
+					class="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-4 space-y-3"
+				>
+					<p class="text-base">
+						Spotify er overbelastet. Vent litt og prøv igjen.
+					</p>
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => {
+							rateLimited = false;
+							getNextSong();
+						}}>PRØV IGJEN</Button
+					>
+				</div>
+			{:else if showDeviceSelector && availableDevices.length > 0}
 				<div class="p-4 md:p-6 rounded-lg bg-card/50 space-y-4">
 					<p class="text-lg font-semibold">Select a device:</p>
 					<div class="space-y-2">
@@ -272,7 +337,7 @@
 				<div
 					class="p-4 md:p-6 rounded-lg bg-destructive/10 border border-destructive space-y-2"
 				>
-					<p class="text-destructive">{errorMessage}</p>
+					<p class="text-destructive text-base">{errorMessage}</p>
 				</div>
 			{:else if !currentTrack}
 				<div class="p-8 rounded-lg bg-card/50 space-y-4">
@@ -280,7 +345,7 @@
 					<Button
 						size="lg"
 						onclick={getNextSong}
-						disabled={loading}
+						disabled={loading || requiresReauth}
 						class="bg-linear-to-r text-lg text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
 					>
 						{loading ? 'LASTER...' : 'START FØRSTE SANG'}
@@ -360,7 +425,7 @@
 							<Button
 								size="lg"
 								onclick={revealSong}
-								class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+								class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-lg md:text-xl px-10 py-6"
 							>
 								VIS SANG
 							</Button>
@@ -368,8 +433,8 @@
 							<Button
 								size="lg"
 								onclick={getNextSong}
-								disabled={loading}
-								class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-base md:text-lg px-8 py-6"
+								disabled={loading || requiresReauth}
+								class="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold text-lg md:text-xl px-10 py-6"
 							>
 								{loading ? 'LASTER...' : 'NESTE SANG'}
 							</Button>
@@ -395,9 +460,15 @@
 								clearPending = false;
 							}}
 						>
-							{clearSuccess ? 'Slettet!' : clearPending ? 'Bekreft?' : 'TØM HISTORIKK'}
+							{clearSuccess
+								? 'Slettet!'
+								: clearPending
+									? 'Bekreft?'
+									: 'TØM HISTORIKK'}
 						</Button>
-						<Button variant="outline" size="sm" onclick={endGame}>AVSLUTT SPILL</Button>
+						<Button variant="outline" size="sm" onclick={endGame}
+							>AVSLUTT SPILL</Button
+						>
 					</div>
 				</div>
 			</div>
@@ -409,7 +480,7 @@
 	.perspective-card {
 		perspective: 1000px;
 		width: 100%;
-		max-width: 400px;
+		max-width: 480px;
 		margin: 0 auto;
 	}
 
