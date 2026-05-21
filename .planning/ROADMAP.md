@@ -59,7 +59,7 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 **UI hint**: yes
 
 **Wave 1** *(schema module + setup page rewrite)*
-- [ ] 03-01-PLAN.md — Create consolidated playlist-state schema with migration + rebuild setup page toggles/persistence (PLAY-01, PLAY-02, PLAY-03, PLAY-04, PLAY-05)
+- [x] 03-01-PLAN.md — Create consolidated playlist-state schema with migration + rebuild setup page toggles/persistence (PLAY-01, PLAY-02, PLAY-03, PLAY-04, PLAY-05)
 
 **Wave 2** *(depends on Wave 1 — play page consumes schema, setup page gains clear button)*
 - [ ] 03-02-PLAN.md — Play page enabled-only filter, songs-played counter, double-press clear on both pages (PLAY-06, SESS-01, SESS-02, SESS-03, SESS-04)
@@ -83,5 +83,5 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 |-------|----------------|--------|-----------|
 | 1. Unblock the Game | 3/3 | Complete | 2026-05-21 |
 | 2. Security & Cleanup | 2/2 | Complete   | 2026-05-20 |
-| 3. Custom Playlist UX + Session | 0/2 | Not started | - |
+| 3. Custom Playlist UX + Session | 1/2 | In Progress|  |
 | 4. Play Page Polish | 0/TBD | Not started | - |
