@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { parsePlaylistState, STORAGE_KEY } from '$lib/config/playlist-state';
 
 	let currentTrack: Track | null = $state(null);
 	let isRevealed = $state(false);
@@ -9,10 +10,14 @@
 	let errorMessage = $state('');
 	let sessionId = $state('');
 	let selectedDefaults: string[] = $state([]);
+	let customPlaylistUris = $state<string[]>([]);
 	let isPlaying = $state(false);
 	let deviceId = $state<string | null>(null);
 	let availableDevices = $state<SpotifyDevice[]>([]);
 	let showDeviceSelector = $state(true);
+	let songsPlayed = $state(0);
+	let clearPending = $state(false);
+	let clearSuccess = $state(false);
 
 	interface Track {
 		id: string;
@@ -32,8 +37,9 @@
 	onMount(async () => {
 		// Get session data from localStorage
 		sessionId = localStorage.getItem('shitster_session_id') || '';
-		const stored = localStorage.getItem('shitster_selected_defaults');
-		selectedDefaults = stored ? JSON.parse(stored) : [];
+		const state = parsePlaylistState(localStorage.getItem(STORAGE_KEY) ?? '');
+		selectedDefaults = state.defaultSelected;
+		customPlaylistUris = state.custom.filter((p) => p.enabled).map((p) => p.uri);
 
 		if (!sessionId) {
 			goto('/setup');
@@ -76,13 +82,6 @@
 		isRevealed = false;
 
 		try {
-			// Get custom playlists from localStorage
-			const storedCustom = localStorage.getItem('shitster_custom_playlists');
-			const customPlaylists = storedCustom ? JSON.parse(storedCustom) : [];
-			const customPlaylistUris = customPlaylists.map(
-				(p: { uri: string }) => p.uri
-			);
-
 			const response = await fetch('/api/spotify/songs/random', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -101,6 +100,7 @@
 
 			const data = await response.json();
 			currentTrack = data.track;
+			songsPlayed += 1;
 
 			if (currentTrack) {
 				// Play the track
@@ -179,17 +179,29 @@
 	}
 
 	async function clearHistory() {
+		if (!clearPending) {
+			clearPending = true;
+			return;
+		}
+		clearPending = false;
 		try {
-			await fetch('/api/spotify/history/clear', { method: 'POST' });
-			alert('Song history cleared!');
+			const res = await fetch('/api/spotify/history/clear', { method: 'POST' });
+			if (res.ok) {
+				songsPlayed = 0;
+				clearSuccess = true;
+				setTimeout(() => {
+					clearSuccess = false;
+				}, 2000);
+			} else {
+				errorMessage = 'Klarte ikke å tømme historikk';
+			}
 		} catch {
-			alert('Failed to clear history');
+			errorMessage = 'Klarte ikke å tømme historikk';
 		}
 	}
 
 	function endGame() {
 		localStorage.removeItem('shitster_session_id');
-		localStorage.removeItem('shitster_selected_defaults');
 		goto('/');
 	}
 </script>
@@ -213,13 +225,24 @@
 			>
 				shitster
 			</h1>
-			<div class="hidden sm:flex gap-2">
-				<Button variant="outline" size="sm" onclick={clearHistory}>
-					TØM HISTORIKK
-				</Button>
-				<Button variant="outline" size="sm" onclick={endGame}
-					>AVSLUTT SPILL</Button
+			{#if songsPlayed > 0}
+				<span class="text-sm text-muted-foreground hidden sm:block"
+					>{songsPlayed}
+					{songsPlayed === 1 ? 'sang' : 'sanger'} spilt</span
 				>
+			{/if}
+			<div class="hidden sm:flex gap-2">
+				<Button
+					variant={clearPending ? 'destructive' : 'outline'}
+					size="sm"
+					onclick={clearHistory}
+					onblur={() => {
+						clearPending = false;
+					}}
+				>
+					{clearSuccess ? 'Slettet!' : clearPending ? 'Bekreft?' : 'TØM HISTORIKK'}
+				</Button>
+				<Button variant="outline" size="sm" onclick={endGame}>AVSLUTT SPILL</Button>
 			</div>
 		</div>
 
@@ -356,14 +379,26 @@
 
 				<!-- Mobile-only bottom buttons -->
 				<div
-					class="sm:hidden flex gap-2 justify-center pt-4 border-t border-border/50"
+					class="sm:hidden flex flex-col items-center gap-2 pt-4 border-t border-border/50"
 				>
-					<Button variant="outline" size="sm" onclick={clearHistory}>
-						TØM HISTORIKK
-					</Button>
-					<Button variant="outline" size="sm" onclick={endGame}
-						>AVSLUTT SPILL</Button
-					>
+					{#if songsPlayed > 0}
+						<span class="text-sm text-muted-foreground"
+							>{songsPlayed} {songsPlayed === 1 ? 'sang' : 'sanger'} spilt</span
+						>
+					{/if}
+					<div class="flex gap-2">
+						<Button
+							variant={clearPending ? 'destructive' : 'outline'}
+							size="sm"
+							onclick={clearHistory}
+							onblur={() => {
+								clearPending = false;
+							}}
+						>
+							{clearSuccess ? 'Slettet!' : clearPending ? 'Bekreft?' : 'TØM HISTORIKK'}
+						</Button>
+						<Button variant="outline" size="sm" onclick={endGame}>AVSLUTT SPILL</Button>
+					</div>
 				</div>
 			</div>
 		{/if}
