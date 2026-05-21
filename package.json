@@ -45,6 +45,7 @@
 		"typescript": "^5.9.3",
 		"vite": "^7.1.10",
 		"vite-plugin-pwa": "^1.1.0",
+		"vitest": "^4.1.7",
 		"workbox-window": "^7.4.0"
 	},
 	"dependencies": {
