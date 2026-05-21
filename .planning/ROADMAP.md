@@ -74,8 +74,15 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
   3. Pasting an invalid Spotify URI shows an immediate validation error (no silent 10-attempt failure)
   4. Spotify 429 rate limit responses show an informative inline message instead of silently looping
   5. Play page text and card are readable from across a room on a TV or large monitor
-**Plans**: TBD
+**Plans**: 3 plans, 2 waves
 **UI hint**: yes
+
+**Wave 1** *(server-side resilience + setup URI validation — independent, parallel)*
+- [ ] 04-01-PLAN.md — Widen token refresh buffer to 5 min + add 429 short-circuit guards to songs/random (API-03, API-04)
+- [ ] 04-03-PLAN.md — Add client-side Spotify URI validation gate to setup page (PLAY-07)
+
+**Wave 2** *(depends on 04-01 for 429 contract — play page consumes server's HTTP 429 + rateLimited shape)*
+- [ ] 04-02-PLAN.md — Replace 3 alert/goto sites with inline banners (re-auth, 429), remove console.log, apply TV-readable CSS (UI-01, UI-02, UI-03, UI-04, API-04 client)
 
 ## Progress
 
@@ -84,4 +91,4 @@ Shitster is a Spotify-powered party jukebox game. The game loop is broken today 
 | 1. Unblock the Game | 3/3 | Complete | 2026-05-21 |
 | 2. Security & Cleanup | 2/2 | Complete   | 2026-05-20 |
 | 3. Custom Playlist UX + Session | 2/2 | Complete   | 2026-05-21 |
-| 4. Play Page Polish | 0/TBD | Not started | - |
+| 4. Play Page Polish | 0/3 | Not started | - |
