@@ -51,6 +51,14 @@
 		}
 
 		// Get devices once at start
+		await loadDevices();
+	});
+
+	// Fetch the current Spotify device list and reconcile the selected device.
+	// iOS Spotify drops off Connect when backgrounded/paused, so the cached
+	// deviceId can vanish — re-resolve it (keep current → active → fall back).
+	// Returns true if a usable device is selected.
+	async function loadDevices(): Promise<boolean> {
 		try {
 			const devicesResponse = await fetch('/api/spotify/devices');
 			const data = await devicesResponse.json();
@@ -58,33 +66,48 @@
 			// Check if re-authentication is required
 			if (data.requiresReauth) {
 				requiresReauth = true;
-				return;
+				return false;
 			}
 
 			availableDevices = data.devices || [];
 
 			if (availableDevices.length === 0) {
+				deviceId = null;
 				errorMessage =
-					'Ingen Spotify-enheter funnet. Åpne Spotify på en enhet først.';
+					'Ingen Spotify-enheter funnet. Åpne Spotify på enheten og prøv igjen.';
 				showDeviceSelector = true;
-			} else if (availableDevices.length === 1) {
-				// Auto-select if only one device
-				deviceId = availableDevices[0].id;
-			} else {
-				// Show selector if multiple devices
-				const activeDevice = availableDevices.find((d) => d.is_active);
-				if (activeDevice) {
-					deviceId = activeDevice.id;
-				} else {
-					showDeviceSelector = true;
-				}
-				showDeviceSelector = true;
+				return false;
 			}
+
+			// Keep current selection if it's still present
+			const stillPresent =
+				deviceId && availableDevices.some((d) => d.id === deviceId);
+
+			if (stillPresent) {
+				return true;
+			}
+
+			if (availableDevices.length === 1) {
+				deviceId = availableDevices[0].id;
+				return true;
+			}
+
+			const activeDevice = availableDevices.find((d) => d.is_active);
+			if (activeDevice) {
+				deviceId = activeDevice.id;
+				return true;
+			}
+
+			// Multiple devices, none active — let the user pick
+			deviceId = null;
+			showDeviceSelector = true;
+			return false;
 		} catch (error) {
 			console.error('Failed to get devices:', error);
 			errorMessage = 'Klarte ikke å hente Spotify-enheter. Prøv igjen.';
+			return false;
 		}
-	});
+	}
 
 	async function getNextSong() {
 		loading = true;
@@ -138,8 +161,11 @@
 	}
 
 	async function playSong(trackId: string) {
-		if (!deviceId) {
-			errorMessage = 'Please select a device first';
+		// Re-resolve the device before playing — on iOS the cached device can
+		// have dropped off Connect since the last song.
+		const haveDevice = await loadDevices();
+		if (requiresReauth) return;
+		if (!haveDevice || !deviceId) {
 			showDeviceSelector = true;
 			return;
 		}
@@ -156,6 +182,16 @@
 
 				if (error.requiresReauth) {
 					requiresReauth = true;
+					return;
+				}
+
+				if (error.noActiveDevice) {
+					// Device vanished mid-game (typical on iOS). Force a re-pick.
+					deviceId = null;
+					errorMessage =
+						'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
+					await loadDevices();
+					showDeviceSelector = true;
 					return;
 				}
 
@@ -192,18 +228,63 @@
 	}
 
 	async function togglePlayback() {
+		// Pause: simple — hits the currently active device.
+		if (isPlaying) {
+			try {
+				const response = await fetch('/api/spotify/player/pause', {
+					method: 'PUT'
+				});
+				if (response.ok) {
+					isPlaying = false;
+				} else {
+					const error = await response.json();
+					errorMessage = error.error || 'Failed to control playback';
+				}
+			} catch {
+				errorMessage = 'Failed to control playback';
+			}
+			return;
+		}
+
+		// Resume: re-resolve the device first (iOS may have dropped it), then
+		// resume on that specific device with the same recovery as playSong.
+		const haveDevice = await loadDevices();
+		if (requiresReauth) return;
+		if (!haveDevice || !deviceId) {
+			showDeviceSelector = true;
+			return;
+		}
+
 		try {
-			const action = isPlaying ? 'pause' : 'play';
-			const response = await fetch('/api/spotify/player/' + action, {
-				method: 'PUT'
+			const response = await fetch('/api/spotify/player/play', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ deviceId })
 			});
 
 			if (response.ok) {
-				isPlaying = !isPlaying;
-			} else {
-				const error = await response.json();
-				errorMessage = error.error || 'Failed to control playback';
+				isPlaying = true;
+				errorMessage = '';
+				return;
 			}
+
+			const error = await response.json();
+
+			if (error.requiresReauth) {
+				requiresReauth = true;
+				return;
+			}
+
+			if (error.noActiveDevice) {
+				deviceId = null;
+				errorMessage =
+					'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
+				await loadDevices();
+				showDeviceSelector = true;
+				return;
+			}
+
+			errorMessage = error.error || 'Failed to control playback';
 		} catch {
 			errorMessage = 'Failed to control playback';
 		}
@@ -315,7 +396,10 @@
 				</div>
 			{:else if showDeviceSelector && availableDevices.length > 0}
 				<div class="p-4 md:p-6 rounded-lg bg-card/50 space-y-4">
-					<p class="text-lg font-semibold">Select a device:</p>
+					<p class="text-lg font-semibold">Velg en enhet:</p>
+					{#if errorMessage}
+						<p class="text-sm text-destructive">{errorMessage}</p>
+					{/if}
 					<div class="space-y-2">
 						{#each availableDevices as device (device.id)}
 							<Button
@@ -325,6 +409,10 @@
 									deviceId = device.id;
 									showDeviceSelector = false;
 									errorMessage = '';
+									// Resume the in-progress song on the newly picked device
+									if (currentTrack && !isPlaying) {
+										playSong(currentTrack.id);
+									}
 								}}
 							>
 								{device.name} ({device.type})

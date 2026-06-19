@@ -15,17 +15,42 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 		let endpoint = '/me/player/play';
 		let options: RequestInit = { method: 'PUT' };
 
-		// If trackId and deviceId provided, start specific track
+		// If trackId and deviceId provided, start specific track on that device.
+		// On iOS the Spotify app can drop off Connect when backgrounded/paused, so
+		// first transfer playback to the target device to wake it, then play.
 		if (trackId && deviceId) {
-			endpoint = `/me/player/play?device_id=${deviceId}`;
+			await spotifyFetch(user.id, '/me/player', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ device_ids: [deviceId], play: false })
+			});
+
+			endpoint = `/me/player/play?device_id=${encodeURIComponent(deviceId)}`;
 			options = {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ uris: [`spotify:track:${trackId}`] })
 			};
+		} else if (deviceId) {
+			// Resume on a specific device (no body = resume current track).
+			// Targeting device_id also re-points playback to a device that may
+			// have dropped off Connect since playback started.
+			endpoint = `/me/player/play?device_id=${encodeURIComponent(deviceId)}`;
 		}
 
-		await spotifyFetch(user.id, endpoint, options);
+		// spotifyFetch returns null on non-auth API errors (e.g. 404 device gone).
+		// Treat that as a failed playback rather than reporting fake success.
+		const result = await spotifyFetch(user.id, endpoint, options);
+
+		if (result === null) {
+			return json(
+				{
+					error: 'No active Spotify device. Reopen Spotify on the device and try again.',
+					noActiveDevice: true
+				},
+				{ status: 404 }
+			);
+		}
 
 		return json({ success: true });
 	} catch (error) {
