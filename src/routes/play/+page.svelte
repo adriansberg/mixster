@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { parsePlaylistState, STORAGE_KEY } from '$lib/config/playlist-state';
 	import { createSpotifyPlayer } from '$lib/client/spotify-player.svelte';
 
@@ -83,6 +84,8 @@
 	}
 
 	onDestroy(() => {
+		// onDestroy also runs during SSR teardown — guard browser-only APIs.
+		if (!browser) return;
 		document.removeEventListener('visibilitychange', handleVisibility);
 		player.disconnect();
 	});
