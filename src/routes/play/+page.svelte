@@ -91,12 +91,37 @@
 		wakeLock = null;
 	}
 
+	// Shown after returning from background (e.g. a manual phone lock) so the
+	// user always has a one-tap way to restart playback, even when the SDK
+	// didn't emit autoplay_failed.
+	let needsResume = $state(false);
+
 	function handleVisibility() {
 		if (document.visibilityState !== 'visible') return;
 		// Wake Lock auto-releases when the tab is hidden — re-acquire on return.
 		if (!wakeLock) requestWakeLock();
-		if (mode === 'sdk' && player.status === 'not_ready') {
-			player.reconnect();
+		if (mode === 'sdk') {
+			if (player.status === 'not_ready') player.reconnect();
+			// A manual lock can have dropped the device while we were hidden.
+			if (currentTrack && !player.isPlaying) needsResume = true;
+		}
+	}
+
+	// Clear the resume prompt once audio is actually playing.
+	$effect(() => {
+		if (isPlaying) needsResume = false;
+	});
+
+	// One-tap recovery button. If audio was merely blocked (device still live),
+	// a direct resume() works. Otherwise re-register the device and replay the
+	// current track — iOS will then surface needsGesture for a final tap.
+	async function tapToPlay() {
+		if (mode === 'sdk') await player.activate();
+		if (player.needsGesture) {
+			await player.resume();
+		} else if (currentTrack) {
+			needsResume = false;
+			await playSong(currentTrack.id);
 		}
 	}
 
@@ -451,12 +476,25 @@
 	<div class="max-w-2xl mx-auto space-y-6 relative z-10">
 		<!-- Header -->
 		<div class="flex items-center justify-center sm:justify-between">
-			<h1
-				class="text-3xl md:text-4xl font-bold bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent"
-				style="font-family: 'Monoton', sans-serif;"
-			>
-				mixster
-			</h1>
+			<div class="flex items-center gap-2">
+				<h1
+					class="text-3xl md:text-4xl font-bold bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent"
+					style="font-family: 'Monoton', sans-serif;"
+				>
+					mixster
+				</h1>
+				<!-- Always-visible reload: the only escape hatch in standalone PWA
+				     mode, where there is no browser reload button. -->
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={() => location.reload()}
+					title="Last inn på nytt"
+					class="text-xl px-2"
+				>
+					↻
+				</Button>
+			</div>
 			{#if songsPlayed > 0}
 				<span class="text-base text-muted-foreground hidden sm:block"
 					>{songsPlayed}
@@ -627,11 +665,11 @@
 
 				<!-- Controls -->
 				<div class="flex flex-col items-center">
-					{#if mode === 'sdk' && player.needsGesture}
-						<!-- iOS blocked audio after suspend — a direct gesture re-starts it -->
+					{#if mode === 'sdk' && (player.needsGesture || needsResume)}
+						<!-- iOS dropped/blocked audio after suspend — a gesture re-starts it -->
 						<Button
 							size="lg"
-							onclick={() => player.resume()}
+							onclick={tapToPlay}
 							class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 font-bold mt-6 px-8 py-6 text-lg animate-pulse"
 						>
 							▶️ TRYKK FOR Å SPILLE
