@@ -73,12 +73,29 @@
 		document.addEventListener('visibilitychange', handleVisibility);
 	});
 
+	// Screen Wake Lock keeps the host screen awake during play so the tab is
+	// never auto-suspended (which drops the SDK device from Spotify Connect).
+	let wakeLock: WakeLockSentinel | null = null;
+
+	async function requestWakeLock() {
+		if (!browser || !('wakeLock' in navigator)) return;
+		try {
+			wakeLock = await navigator.wakeLock.request('screen');
+		} catch {
+			/* denied (e.g. low battery) — non-fatal */
+		}
+	}
+
+	function releaseWakeLock() {
+		wakeLock?.release().catch(() => {});
+		wakeLock = null;
+	}
+
 	function handleVisibility() {
-		if (
-			document.visibilityState === 'visible' &&
-			mode === 'sdk' &&
-			player.status === 'not_ready'
-		) {
+		if (document.visibilityState !== 'visible') return;
+		// Wake Lock auto-releases when the tab is hidden — re-acquire on return.
+		if (!wakeLock) requestWakeLock();
+		if (mode === 'sdk' && player.status === 'not_ready') {
 			player.reconnect();
 		}
 	}
@@ -87,6 +104,7 @@
 		// onDestroy also runs during SSR teardown — guard browser-only APIs.
 		if (!browser) return;
 		document.removeEventListener('visibilitychange', handleVisibility);
+		releaseWakeLock();
 		player.disconnect();
 	});
 
@@ -176,6 +194,8 @@
 	}
 
 	async function getNextSong() {
+		// Keep the screen awake (requested from the user gesture so it isn't denied).
+		requestWakeLock();
 		// iOS: unlock audio inside the user gesture. Await so the unlock completes
 		// within the gesture before the async fetch/play that follows.
 		if (mode === 'sdk') await player.activate();

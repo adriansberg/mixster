@@ -192,7 +192,11 @@ export function createSpotifyPlayer(playerName = 'Mixster'): SpotifyPlayerContro
 	async function recover(): Promise<string | null> {
 		disconnect();
 		await init();
-		return waitForReady();
+		const id = await waitForReady();
+		// Brief settle: Spotify's backend may not register the new device the
+		// instant 'ready' fires, so an immediate play can still 404.
+		if (id) await new Promise((r) => setTimeout(r, 800));
+		return id;
 	}
 
 	// Resume playback from within a user gesture. Calling player.resume() on a
