@@ -227,6 +227,27 @@
 		}
 	}
 
+	type PlayResult = 'ok' | 'reauth' | 'noDevice' | 'fail';
+
+	// Issue a single play request. With trackId → start that track; without →
+	// resume the current track on the device.
+	async function sendPlay(deviceId: string, trackId?: string): Promise<PlayResult> {
+		try {
+			const res = await fetch('/api/spotify/player/play', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(trackId ? { trackId, deviceId } : { deviceId })
+			});
+			if (res.ok) return 'ok';
+			const error = await res.json();
+			if (error.requiresReauth) return 'reauth';
+			if (error.noActiveDevice) return 'noDevice';
+			return 'fail';
+		} catch {
+			return 'fail';
+		}
+	}
+
 	async function playSong(trackId: string) {
 		const targetDevice = await ensureDevice();
 		if (requiresReauth) return;
@@ -238,48 +259,42 @@
 			return;
 		}
 
-		try {
-			const playResponse = await fetch('/api/spotify/player/play', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ trackId, deviceId: targetDevice })
-			});
+		let result = await sendPlay(targetDevice, trackId);
 
-			if (!playResponse.ok) {
-				const error = await playResponse.json();
+		// SDK device can be dropped from Connect after an iOS suspend even though
+		// it still reads ready. Re-register for a fresh device_id and retry once.
+		if (result === 'noDevice' && mode === 'sdk') {
+			const freshDevice = await player.recover();
+			if (freshDevice) result = await sendPlay(freshDevice, trackId);
+		}
 
-				if (error.requiresReauth) {
-					requiresReauth = true;
-					return;
-				}
-
-				if (error.noActiveDevice) {
-					if (mode === 'connect') {
-						// External device vanished mid-game (typical on iOS app).
-						connectDeviceId = null;
-						errorMessage =
-							'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
-						await loadDevices();
-						showDeviceSelector = true;
-					} else {
-						errorMessage =
-							'Nettleser-avspilleren mistet tilkoblingen. Prøv igjen.';
-					}
-					return;
-				}
-
-				errorMessage =
-					'Avspilling feilet. Sjekk at Spotify er åpen på enheten.';
-				return;
-			}
-
+		if (result === 'ok') {
 			// In SDK mode the player_state_changed listener owns isPlaying.
 			if (mode === 'connect') connectIsPlaying = true;
 			errorMessage = '';
-		} catch (error) {
-			console.error('Playback error:', error);
-			errorMessage = 'Avspilling feilet. Sjekk at Spotify er åpen på enheten.';
+			return;
 		}
+
+		if (result === 'reauth') {
+			requiresReauth = true;
+			return;
+		}
+
+		if (result === 'noDevice') {
+			if (mode === 'connect') {
+				// External device vanished mid-game (typical on iOS app).
+				connectDeviceId = null;
+				errorMessage =
+					'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
+				await loadDevices();
+				showDeviceSelector = true;
+			} else {
+				errorMessage = 'Nettleser-avspilleren mistet tilkoblingen. Prøv igjen.';
+			}
+			return;
+		}
+
+		errorMessage = 'Avspilling feilet. Sjekk at Spotify er åpen på enheten.';
 	}
 
 	async function revealSong() {
@@ -333,43 +348,42 @@
 			return;
 		}
 
-		try {
-			const response = await fetch('/api/spotify/player/play', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ deviceId: targetDevice })
-			});
+		let result = await sendPlay(targetDevice);
 
-			if (response.ok) {
-				if (mode === 'connect') connectIsPlaying = true;
-				errorMessage = '';
-				return;
+		// SDK device dropped after iOS suspend: re-register and restart the
+		// current track on the fresh device (resume has nothing to resume there).
+		if (result === 'noDevice' && mode === 'sdk') {
+			const freshDevice = await player.recover();
+			if (freshDevice && currentTrack) {
+				result = await sendPlay(freshDevice, currentTrack.id);
 			}
-
-			const error = await response.json();
-
-			if (error.requiresReauth) {
-				requiresReauth = true;
-				return;
-			}
-
-			if (error.noActiveDevice) {
-				if (mode === 'connect') {
-					connectDeviceId = null;
-					errorMessage =
-						'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
-					await loadDevices();
-					showDeviceSelector = true;
-				} else {
-					errorMessage = 'Nettleser-avspilleren mistet tilkoblingen. Prøv igjen.';
-				}
-				return;
-			}
-
-			errorMessage = error.error || 'Failed to control playback';
-		} catch {
-			errorMessage = 'Failed to control playback';
 		}
+
+		if (result === 'ok') {
+			if (mode === 'connect') connectIsPlaying = true;
+			errorMessage = '';
+			return;
+		}
+
+		if (result === 'reauth') {
+			requiresReauth = true;
+			return;
+		}
+
+		if (result === 'noDevice') {
+			if (mode === 'connect') {
+				connectDeviceId = null;
+				errorMessage =
+					'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
+				await loadDevices();
+				showDeviceSelector = true;
+			} else {
+				errorMessage = 'Nettleser-avspilleren mistet tilkoblingen. Prøv igjen.';
+			}
+			return;
+		}
+
+		errorMessage = 'Failed to control playback';
 	}
 
 	async function clearHistory() {

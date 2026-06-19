@@ -49,6 +49,12 @@ export interface SpotifyPlayerController {
 	activate(): Promise<void>;
 	/** Re-register the device after it went not_ready (e.g. iOS tab suspend). */
 	reconnect(): Promise<void>;
+	/**
+	 * Fully re-register the device (disconnect + re-init) and resolve with the
+	 * fresh device_id once ready. Needed when iOS suspend de-registers the
+	 * device from Spotify Connect even though status still reads 'ready'.
+	 */
+	recover(): Promise<string | null>;
 	/** Resume from within a user gesture — the iOS-accepted way to start audio. */
 	resume(): Promise<void>;
 	disconnect(): void;
@@ -163,6 +169,32 @@ export function createSpotifyPlayer(playerName = 'Mixster'): SpotifyPlayerContro
 		}
 	}
 
+	// Resolve with the device_id once the player reports ready, or null on timeout.
+	function waitForReady(timeoutMs = 6000): Promise<string | null> {
+		if (status === 'ready' && deviceId) return Promise.resolve(deviceId);
+		return new Promise((resolve) => {
+			const start = Date.now();
+			const iv = setInterval(() => {
+				if (status === 'ready' && deviceId) {
+					clearInterval(iv);
+					resolve(deviceId);
+				} else if (Date.now() - start > timeoutMs) {
+					clearInterval(iv);
+					resolve(null);
+				}
+			}, 100);
+		});
+	}
+
+	// Full re-registration: iOS suspend can drop the device from Spotify Connect
+	// while status still reads 'ready'. Recreate the player to get a live
+	// device_id, then wait for the new 'ready'.
+	async function recover(): Promise<string | null> {
+		disconnect();
+		await init();
+		return waitForReady();
+	}
+
 	// Resume playback from within a user gesture. Calling player.resume() on a
 	// direct gesture path is the iOS-accepted way to un-block blocked audio.
 	async function resume(): Promise<void> {
@@ -219,6 +251,7 @@ export function createSpotifyPlayer(playerName = 'Mixster'): SpotifyPlayerContro
 		init,
 		activate,
 		reconnect,
+		recover,
 		resume,
 		disconnect
 	};
