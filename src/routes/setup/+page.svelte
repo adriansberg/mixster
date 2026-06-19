@@ -267,7 +267,7 @@
 </script>
 
 <div
-	class="min-h-screen p-4 md:p-8 bg-linear-to-br from-purple-600/10 via-pink-500/10 to-orange-400/10 relative"
+	class="min-h-screen p-4 md:p-8 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-linear-to-br from-purple-600/10 via-pink-500/10 to-orange-400/10 relative"
 >
 	<!-- Decorative background gradient -->
 	<div

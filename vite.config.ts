@@ -10,9 +10,9 @@ export default defineConfig({
 			manifest: {
 				name: 'Mixster',
 				short_name: 'Mixster',
-				description: 'Mixster - A modern SvelteKit application',
-				theme_color: '#ffffff',
-				background_color: '#ffffff',
+				description: 'Spotify-powered party jukebox game',
+				theme_color: '#0a0a12',
+				background_color: '#0a0a12',
 				display: 'standalone',
 				start_url: '/',
 				icons: [
@@ -25,6 +25,12 @@ export default defineConfig({
 						src: '/icon-512.png',
 						sizes: '512x512',
 						type: 'image/png'
+					},
+					{
+						src: '/icon-maskable-512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'maskable'
 					}
 				]
 			},

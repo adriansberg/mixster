@@ -6,13 +6,13 @@
 			<stop offset="1" stop-color="#fb923c" />
 		</linearGradient>
 	</defs>
-	<rect width="512" height="512" rx="112" fill="#0a0a12" />
-	<circle cx="256" cy="256" r="164" fill="url(#g)" />
+	<rect width="512" height="512" fill="#0a0a12" />
+	<circle cx="256" cy="256" r="132" fill="url(#g)" />
 	<g fill="none" stroke="#0a0a12" stroke-width="3" opacity="0.45">
-		<circle cx="256" cy="256" r="150" />
 		<circle cx="256" cy="256" r="120" />
-		<circle cx="256" cy="256" r="90" />
+		<circle cx="256" cy="256" r="96" />
+		<circle cx="256" cy="256" r="72" />
 	</g>
-	<circle cx="256" cy="256" r="58" fill="#0a0a12" />
-	<circle cx="256" cy="256" r="11" fill="url(#g)" />
+	<circle cx="256" cy="256" r="46" fill="#0a0a12" />
+	<circle cx="256" cy="256" r="9" fill="url(#g)" />
 </svg>

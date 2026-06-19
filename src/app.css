@@ -56,6 +56,11 @@
 	* {
 		border-color: var(--color-border);
 	}
+	/* Paint behind the safe-area insets (notch / home indicator) so the
+	   standalone PWA shows the app's dark backdrop, not white bars. */
+	html {
+		background-color: #0a0a12;
+	}
 	body {
 		background-color: var(--color-background);
 		color: var(--color-foreground);
