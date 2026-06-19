@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { parsePlaylistState, STORAGE_KEY } from '$lib/config/playlist-state';
+	import { createSpotifyPlayer } from '$lib/client/spotify-player.svelte';
 
 	let currentTrack: Track | null = $state(null);
 	let isRevealed = $state(false);
@@ -13,13 +14,26 @@
 	let sessionId = $state('');
 	let selectedDefaults: string[] = $state([]);
 	let customPlaylistUris = $state<string[]>([]);
-	let isPlaying = $state(false);
-	let deviceId = $state<string | null>(null);
-	let availableDevices = $state<SpotifyDevice[]>([]);
-	let showDeviceSelector = $state(true);
 	let songsPlayed = $state(0);
 	let clearPending = $state(false);
 	let clearSuccess = $state(false);
+
+	// Playback mode: 'sdk' = this browser tab is the Spotify device (audio plays
+	// here); 'connect' = control an external Spotify device (fallback).
+	let mode = $state<'sdk' | 'connect'>('sdk');
+	const player = createSpotifyPlayer('Mixster');
+
+	// Connect-mode device state (the old external-device flow, kept as fallback).
+	let connectDeviceId = $state<string | null>(null);
+	let connectIsPlaying = $state(false);
+	let availableDevices = $state<SpotifyDevice[]>([]);
+	let showDeviceSelector = $state(false);
+
+	// The device we actually target, and the playback truth, per active mode.
+	const activeDeviceId = $derived(
+		mode === 'sdk' ? player.deviceId : connectDeviceId
+	);
+	const isPlaying = $derived(mode === 'sdk' ? player.isPlaying : connectIsPlaying);
 
 	interface Track {
 		id: string;
@@ -50,9 +64,30 @@
 			return;
 		}
 
-		// Get devices once at start
-		await loadDevices();
+		// Try the in-browser SDK player first. Connect-mode device loading happens
+		// only if the SDK can't run (see the status effect below).
+		await player.init();
 	});
+
+	onDestroy(() => player.disconnect());
+
+	// Bridge SDK status into the page's mode/auth state. Guarded so it doesn't loop.
+	$effect(() => {
+		const s = player.status;
+		if ((s === 'account_error' || s === 'init_error') && mode !== 'connect') {
+			// SDK unavailable (not Premium / unsupported / blocked) — fall back.
+			mode = 'connect';
+			loadDevices();
+		} else if (s === 'auth_error') {
+			requiresReauth = true;
+		}
+	});
+
+	// The browser tab is the device in SDK mode → no picker needed once ready.
+	const showDeviceUi = $derived(mode === 'connect' && showDeviceSelector);
+	const sdkConnecting = $derived(
+		mode === 'sdk' && (player.status === 'idle' || player.status === 'loading')
+	);
 
 	// Fetch the current Spotify device list and reconcile the selected device.
 	// iOS Spotify drops off Connect when backgrounded/paused, so the cached
@@ -72,7 +107,7 @@
 			availableDevices = data.devices || [];
 
 			if (availableDevices.length === 0) {
-				deviceId = null;
+				connectDeviceId = null;
 				errorMessage =
 					'Ingen Spotify-enheter funnet. Åpne Spotify på enheten og prøv igjen.';
 				showDeviceSelector = true;
@@ -81,25 +116,25 @@
 
 			// Keep current selection if it's still present
 			const stillPresent =
-				deviceId && availableDevices.some((d) => d.id === deviceId);
+				connectDeviceId && availableDevices.some((d) => d.id === connectDeviceId);
 
 			if (stillPresent) {
 				return true;
 			}
 
 			if (availableDevices.length === 1) {
-				deviceId = availableDevices[0].id;
+				connectDeviceId = availableDevices[0].id;
 				return true;
 			}
 
 			const activeDevice = availableDevices.find((d) => d.is_active);
 			if (activeDevice) {
-				deviceId = activeDevice.id;
+				connectDeviceId = activeDevice.id;
 				return true;
 			}
 
 			// Multiple devices, none active — let the user pick
-			deviceId = null;
+			connectDeviceId = null;
 			showDeviceSelector = true;
 			return false;
 		} catch (error) {
@@ -109,7 +144,20 @@
 		}
 	}
 
+	// Resolve the device to target for the current mode. In SDK mode that's the
+	// browser tab itself; in connect mode it's a (re-resolved) external device.
+	async function ensureDevice(): Promise<string | null> {
+		if (mode === 'sdk') {
+			return player.status === 'ready' ? player.deviceId : null;
+		}
+		const ok = await loadDevices();
+		return ok ? connectDeviceId : null;
+	}
+
 	async function getNextSong() {
+		// iOS: unlock audio inside the user gesture, before any await.
+		if (mode === 'sdk') player.activate();
+
 		loading = true;
 		errorMessage = '';
 		requiresReauth = false;
@@ -161,12 +209,13 @@
 	}
 
 	async function playSong(trackId: string) {
-		// Re-resolve the device before playing — on iOS the cached device can
-		// have dropped off Connect since the last song.
-		const haveDevice = await loadDevices();
+		const targetDevice = await ensureDevice();
 		if (requiresReauth) return;
-		if (!haveDevice || !deviceId) {
-			showDeviceSelector = true;
+		if (!targetDevice) {
+			// No device: in connect mode show the picker; in SDK mode the player
+			// isn't ready yet (rare) — surface a short message.
+			if (mode === 'connect') showDeviceSelector = true;
+			else errorMessage = 'Avspilling er ikke klar ennå. Prøv igjen.';
 			return;
 		}
 
@@ -174,7 +223,7 @@
 			const playResponse = await fetch('/api/spotify/player/play', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ trackId, deviceId })
+				body: JSON.stringify({ trackId, deviceId: targetDevice })
 			});
 
 			if (!playResponse.ok) {
@@ -186,12 +235,17 @@
 				}
 
 				if (error.noActiveDevice) {
-					// Device vanished mid-game (typical on iOS). Force a re-pick.
-					deviceId = null;
-					errorMessage =
-						'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
-					await loadDevices();
-					showDeviceSelector = true;
+					if (mode === 'connect') {
+						// External device vanished mid-game (typical on iOS app).
+						connectDeviceId = null;
+						errorMessage =
+							'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
+						await loadDevices();
+						showDeviceSelector = true;
+					} else {
+						errorMessage =
+							'Nettleser-avspilleren mistet tilkoblingen. Prøv igjen.';
+					}
 					return;
 				}
 
@@ -200,7 +254,8 @@
 				return;
 			}
 
-			isPlaying = true;
+			// In SDK mode the player_state_changed listener owns isPlaying.
+			if (mode === 'connect') connectIsPlaying = true;
 			errorMessage = '';
 		} catch (error) {
 			console.error('Playback error:', error);
@@ -218,8 +273,9 @@
 					method: 'PUT'
 				});
 
-				if (response.ok) {
-					isPlaying = false;
+				// In SDK mode the player_state_changed listener owns isPlaying.
+				if (response.ok && mode === 'connect') {
+					connectIsPlaying = false;
 				}
 			} catch (error) {
 				console.error('Failed to pause on reveal:', error);
@@ -228,14 +284,17 @@
 	}
 
 	async function togglePlayback() {
-		// Pause: simple — hits the currently active device.
+		// iOS: unlock audio inside the user gesture, before any await.
+		if (mode === 'sdk') player.activate();
+
+		// Pause: simple — hits the currently active device (SDK device included).
 		if (isPlaying) {
 			try {
 				const response = await fetch('/api/spotify/player/pause', {
 					method: 'PUT'
 				});
 				if (response.ok) {
-					isPlaying = false;
+					if (mode === 'connect') connectIsPlaying = false;
 				} else {
 					const error = await response.json();
 					errorMessage = error.error || 'Failed to control playback';
@@ -246,12 +305,12 @@
 			return;
 		}
 
-		// Resume: re-resolve the device first (iOS may have dropped it), then
-		// resume on that specific device with the same recovery as playSong.
-		const haveDevice = await loadDevices();
+		// Resume on the active device (re-resolved per mode).
+		const targetDevice = await ensureDevice();
 		if (requiresReauth) return;
-		if (!haveDevice || !deviceId) {
-			showDeviceSelector = true;
+		if (!targetDevice) {
+			if (mode === 'connect') showDeviceSelector = true;
+			else errorMessage = 'Avspilling er ikke klar ennå. Prøv igjen.';
 			return;
 		}
 
@@ -259,11 +318,11 @@
 			const response = await fetch('/api/spotify/player/play', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ deviceId })
+				body: JSON.stringify({ deviceId: targetDevice })
 			});
 
 			if (response.ok) {
-				isPlaying = true;
+				if (mode === 'connect') connectIsPlaying = true;
 				errorMessage = '';
 				return;
 			}
@@ -276,11 +335,15 @@
 			}
 
 			if (error.noActiveDevice) {
-				deviceId = null;
-				errorMessage =
-					'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
-				await loadDevices();
-				showDeviceSelector = true;
+				if (mode === 'connect') {
+					connectDeviceId = null;
+					errorMessage =
+						'Spotify-enheten er ikke lenger tilgjengelig. Åpne Spotify på enheten igjen og velg den.';
+					await loadDevices();
+					showDeviceSelector = true;
+				} else {
+					errorMessage = 'Nettleser-avspilleren mistet tilkoblingen. Prøv igjen.';
+				}
 				return;
 			}
 
@@ -313,6 +376,7 @@
 	}
 
 	function endGame() {
+		player.disconnect();
 		localStorage.removeItem('mixster_session_id');
 		goto('/');
 	}
@@ -394,19 +458,28 @@
 						}}>PRØV IGJEN</Button
 					>
 				</div>
-			{:else if showDeviceSelector && availableDevices.length > 0}
+			{:else if sdkConnecting}
+				<div class="p-4 md:p-6 rounded-lg bg-card/50 space-y-2">
+					<p class="text-base text-muted-foreground animate-pulse">
+						Kobler til nettleser-avspilling…
+					</p>
+				</div>
+			{:else if showDeviceUi && availableDevices.length > 0}
 				<div class="p-4 md:p-6 rounded-lg bg-card/50 space-y-4">
 					<p class="text-lg font-semibold">Velg en enhet:</p>
+					<p class="text-xs text-muted-foreground">
+						Nettleser-avspilling utilgjengelig — bruker tilkoblet enhet.
+					</p>
 					{#if errorMessage}
 						<p class="text-sm text-destructive">{errorMessage}</p>
 					{/if}
 					<div class="space-y-2">
 						{#each availableDevices as device (device.id)}
 							<Button
-								variant={deviceId === device.id ? 'default' : 'outline'}
+								variant={connectDeviceId === device.id ? 'default' : 'outline'}
 								class="w-full"
 								onclick={() => {
-									deviceId = device.id;
+									connectDeviceId = device.id;
 									showDeviceSelector = false;
 									errorMessage = '';
 									// Resume the in-progress song on the newly picked device
@@ -433,7 +506,7 @@
 					<Button
 						size="lg"
 						onclick={getNextSong}
-						disabled={loading || requiresReauth}
+						disabled={loading || requiresReauth || sdkConnecting}
 						class="bg-linear-to-r text-lg text-white from-purple-600 via-pink-500 to-orange-400 hover:shadow-xl transition-all hover:scale-105 active:scale-95 border-0 font-bold"
 					>
 						{loading ? 'LASTER...' : 'START FØRSTE SANG'}
