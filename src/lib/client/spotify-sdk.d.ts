@@ -20,6 +20,7 @@ type SpotifyPlayerEvent =
 	| 'ready'
 	| 'not_ready'
 	| 'player_state_changed'
+	| 'autoplay_failed'
 	| 'initialization_error'
 	| 'authentication_error'
 	| 'account_error'
@@ -28,12 +29,14 @@ type SpotifyPlayerEvent =
 interface SpotifyPlayerInstance {
 	connect(): Promise<boolean>;
 	disconnect(): void;
+	resume(): Promise<void>;
 	activateElement?(): Promise<void>;
 	addListener(event: 'ready' | 'not_ready', cb: (d: { device_id: string }) => void): boolean;
 	addListener(
 		event: 'player_state_changed',
 		cb: (state: SpotifyWebPlaybackState | null) => void
 	): boolean;
+	addListener(event: 'autoplay_failed', cb: () => void): boolean;
 	addListener(
 		event: 'initialization_error' | 'authentication_error' | 'account_error' | 'playback_error',
 		cb: (err: SpotifyWebPlaybackError) => void

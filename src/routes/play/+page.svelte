@@ -67,9 +67,25 @@
 		// Try the in-browser SDK player first. Connect-mode device loading happens
 		// only if the SDK can't run (see the status effect below).
 		await player.init();
+
+		// iOS suspends the tab on lock; re-register the device when we return.
+		document.addEventListener('visibilitychange', handleVisibility);
 	});
 
-	onDestroy(() => player.disconnect());
+	function handleVisibility() {
+		if (
+			document.visibilityState === 'visible' &&
+			mode === 'sdk' &&
+			player.status === 'not_ready'
+		) {
+			player.reconnect();
+		}
+	}
+
+	onDestroy(() => {
+		document.removeEventListener('visibilitychange', handleVisibility);
+		player.disconnect();
+	});
 
 	// Bridge SDK status into the page's mode/auth state. Guarded so it doesn't loop.
 	$effect(() => {
@@ -148,6 +164,8 @@
 	// browser tab itself; in connect mode it's a (re-resolved) external device.
 	async function ensureDevice(): Promise<string | null> {
 		if (mode === 'sdk') {
+			// iOS suspends the tab on lock → device goes not_ready. Re-register it.
+			if (player.status === 'not_ready') await player.reconnect();
 			return player.status === 'ready' ? player.deviceId : null;
 		}
 		const ok = await loadDevices();
@@ -155,8 +173,9 @@
 	}
 
 	async function getNextSong() {
-		// iOS: unlock audio inside the user gesture, before any await.
-		if (mode === 'sdk') player.activate();
+		// iOS: unlock audio inside the user gesture. Await so the unlock completes
+		// within the gesture before the async fetch/play that follows.
+		if (mode === 'sdk') await player.activate();
 
 		loading = true;
 		errorMessage = '';
@@ -284,8 +303,8 @@
 	}
 
 	async function togglePlayback() {
-		// iOS: unlock audio inside the user gesture, before any await.
-		if (mode === 'sdk') player.activate();
+		// iOS: unlock audio inside the user gesture before any further await.
+		if (mode === 'sdk') await player.activate();
 
 		// Pause: simple — hits the currently active device (SDK device included).
 		if (isPlaying) {
@@ -571,6 +590,17 @@
 
 				<!-- Controls -->
 				<div class="flex flex-col items-center">
+					{#if mode === 'sdk' && player.needsGesture}
+						<!-- iOS blocked audio after suspend — a direct gesture re-starts it -->
+						<Button
+							size="lg"
+							onclick={() => player.resume()}
+							class="bg-linear-to-r text-white from-purple-600 via-pink-500 to-orange-400 font-bold mt-6 px-8 py-6 text-lg animate-pulse"
+						>
+							▶️ TRYKK FOR Å SPILLE
+						</Button>
+					{/if}
+
 					<!-- Play/Pause Control -->
 					<Button
 						size="lg"
