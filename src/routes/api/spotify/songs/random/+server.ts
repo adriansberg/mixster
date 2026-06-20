@@ -105,7 +105,7 @@ export async function POST(event: RequestEvent) {
 		const total: number = totalData.total ?? 0;
 
 		// Random offset strategy: spread access across the whole playlist
-		const maxOffset = Math.max(1, total - 100);
+		const maxOffset = Math.max(1, total - 99);
 		const offset = Math.floor(Math.random() * maxOffset);
 
 		// Fetch 100-track window at random offset

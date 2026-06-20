@@ -47,6 +47,7 @@ export async function getSpotifyAccessToken(
 		.update(spotifyTokens)
 		.set({
 			accessToken: refreshed.accessToken,
+			refreshToken: refreshed.refreshToken ?? tokens.refreshToken,
 			expiresAt: refreshed.expiresAt
 		})
 		.where(eq(spotifyTokens.userId, userId));
@@ -59,7 +60,10 @@ export async function getSpotifyAccessToken(
  */
 async function refreshSpotifyToken(
 	refreshToken: string
-): Promise<Pick<SpotifyTokens, 'accessToken' | 'expiresAt'> | null> {
+): Promise<Pick<
+	SpotifyTokens,
+	'accessToken' | 'expiresAt'
+> & { refreshToken: string | null } | null> {
 	if (!env.SPOTIFY_CLIENT_ID || !env.SPOTIFY_CLIENT_SECRET) {
 		console.error('Spotify credentials not configured');
 		return null;
@@ -87,6 +91,7 @@ async function refreshSpotifyToken(
 
 		return {
 			accessToken: data.access_token,
+			refreshToken: data.refresh_token ?? null,
 			expiresAt: new Date(Date.now() + data.expires_in * 1000)
 		};
 	} catch (error) {

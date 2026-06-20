@@ -31,10 +31,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			id: string;
 			name: string;
 			uri: string;
-			items: { total: number };
+			tracks?: { total: number };
+			items?: { total: number };
 		}>(
 			locals.user.id,
-			`/playlists/${playlistId}?fields=id,name,uri,items.total`
+			`/playlists/${playlistId}?fields=id,name,uri,tracks.total`
 		);
 
 		if (!playlist) {
@@ -47,7 +48,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({
 			name: playlist.name,
 			uri: playlist.uri,
-			trackCount: playlist.items?.total || 0
+			trackCount: playlist.tracks?.total ?? playlist.items?.total ?? 0
 		});
 	} catch (error) {
 		console.error('Error validating playlist:', error);
