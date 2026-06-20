@@ -26,12 +26,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					if (!playlistId) return;
 
 					const data = await spotifyFetch<{
-						tracks?: { total: number };
 						items?: { total: number };
-					}>(userId, `/playlists/${playlistId}?fields=tracks.total`);
+						tracks?: { total: number };
+					}>(userId, `/playlists/${playlistId}?fields=items.total`);
 
 					if (data) {
-						trackCounts[uri] = data.tracks?.total ?? data.items?.total ?? 0;
+						trackCounts[uri] = data.items?.total ?? data.tracks?.total ?? 0;
 					} else {
 						trackCounts[uri] = 0;
 					}

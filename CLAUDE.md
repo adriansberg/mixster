@@ -48,4 +48,4 @@ This project uses Get Shit Done (GSD) for structured planning and execution.
 ## Spotify API gotchas
 
 - Playlist **tracks sub-resource** (`/playlists/{id}/items`) is the migrated endpoint — `songs/random` uses it. Field access is `.items?.items`, not `.tracks.items`.
-- Playlist **object metadata** (`/playlists/{id}?fields=...`) still exposes total at `tracks.total`, NOT `items.total` (the `items` rename applies only to the sub-resource). Read `tracks?.total ?? items?.total ?? 0` defensively.
+- Playlist **object metadata** (`/playlists/{id}?fields=...`) exposes total at `items.total` post-migration (verified live). Request `fields=...,items.total` and read `items?.total ?? tracks?.total ?? 0`. Do NOT request `tracks.total` in the fields filter — the renamed-away field can blank the count or 400 the request. (This was a regression: a code review wrongly "corrected" `items.total`→`tracks.total`; live API proved `items.total` right.)
