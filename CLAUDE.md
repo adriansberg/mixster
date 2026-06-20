@@ -17,7 +17,7 @@ This project uses Get Shit Done (GSD) for structured planning and execution.
 - `research/` — domain research
 - `codebase/` — codebase analysis
 
-**Current state:** Phase 1 ready to plan — game loop is broken due to Spotify Feb 2026 API changes.
+**Current state:** Game loop working — Spotify Feb 2026 API migration done, Web Playback SDK embedded as primary playback, PWA + iOS playback hardening landed. Party-ready.
 
 **Next command:** `/gsd:discuss-phase 1` or `/gsd:plan-phase 1`
 
@@ -26,7 +26,8 @@ This project uses Get Shit Done (GSD) for structured planning and execution.
 - **Framework:** SvelteKit 2 + Svelte 5 (runes — use `$state`, `$derived`, `$effect`)
 - **DB:** Drizzle ORM + PostgreSQL (postgres-js driver)
 - **Auth:** Arctic OAuth (Spotify PKCE), @oslojs/crypto session tokens
-- **Styling:** Tailwind CSS v4, bits-ui, lucide-svelte
+- **Styling:** Tailwind CSS v4, lucide-svelte (UI components hand-rolled)
+- **Playback:** Spotify Web Playback SDK primary (`src/lib/client/spotify-player.svelte.ts`), Spotify Connect fallback; PWA via `@vite-pwa/sveltekit`
 - **Deploy:** Vercel (`@sveltejs/adapter-vercel`)
 
 ## Key Conventions
@@ -44,7 +45,7 @@ This project uses Get Shit Done (GSD) for structured planning and execution.
 - `src/lib/server/db/` — schema changes require Drizzle migration
 - `src/hooks.server.ts` — session validation middleware
 
-## Known Issues (to fix in Phase 1)
+## Spotify API gotchas
 
-- `src/routes/api/spotify/songs/random/+server.ts` uses deprecated `/tracks` endpoint — must migrate to `/items`
-- All `.tracks.items` field access must become `.items?.items`
+- Playlist **tracks sub-resource** (`/playlists/{id}/items`) is the migrated endpoint — `songs/random` uses it. Field access is `.items?.items`, not `.tracks.items`.
+- Playlist **object metadata** (`/playlists/{id}?fields=...`) still exposes total at `tracks.total`, NOT `items.total` (the `items` rename applies only to the sub-resource). Read `tracks?.total ?? items?.total ?? 0` defensively.
