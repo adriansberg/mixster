@@ -10,6 +10,9 @@ const envSchema = z.object({
 	SPOTIFY_CLIENT_ID: z.string(),
 	SPOTIFY_CLIENT_SECRET: z.string(),
 
+	// AI release-year check (optional — feature disabled without it)
+	ANTHROPIC_API_KEY: z.string().optional(),
+
 	// App
 	PUBLIC_APP_URL: z.url(),
 	NODE_ENV: z.enum(['development', 'production', 'test']).default('development')
