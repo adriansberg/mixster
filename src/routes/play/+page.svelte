@@ -19,6 +19,16 @@
 	let clearPending = $state(false);
 	let clearSuccess = $state(false);
 
+	// AI check of the original release year (Spotify often reports the
+	// compilation/remaster year). Reset on every new track.
+	let aiCheck = $state<
+		| { status: 'idle' }
+		| { status: 'loading' }
+		| { status: 'done'; year: number; confidence: 'high' | 'medium' | 'low'; note: string }
+		| { status: 'error'; message: string }
+	>({ status: 'idle' });
+	const aiYear = $derived(aiCheck.status === 'done' ? aiCheck.year : null);
+
 	// Playback mode: 'sdk' = this browser tab is the Spotify device (audio plays
 	// here); 'connect' = control an external Spotify device (fallback).
 	let mode = $state<'sdk' | 'connect'>('sdk');
@@ -41,6 +51,7 @@
 		name: string;
 		artists: string[];
 		releaseYear: number;
+		album?: string;
 		albumArt?: string;
 	}
 
@@ -230,6 +241,7 @@
 		requiresReauth = false;
 		rateLimited = false;
 		isRevealed = false;
+		aiCheck = { status: 'idle' };
 
 		try {
 			const response = await fetch('/api/spotify/songs/random', {
@@ -361,6 +373,37 @@
 				}
 			} catch (error) {
 				console.error('Failed to pause on reveal:', error);
+			}
+		}
+	}
+
+	async function checkYearWithAi() {
+		if (!currentTrack || aiCheck.status === 'loading') return;
+		const track = currentTrack;
+		aiCheck = { status: 'loading' };
+
+		try {
+			const response = await fetch('/api/ai/release-year', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					trackId: track.id,
+					name: track.name,
+					artists: track.artists,
+					album: track.album,
+					spotifyYear: track.releaseYear
+				})
+			});
+			const data = await response.json();
+			// Ignore a late answer for a track we've already moved past.
+			if (currentTrack?.id !== track.id) return;
+
+			aiCheck = response.ok
+				? { status: 'done', year: data.year, confidence: data.confidence, note: data.note }
+				: { status: 'error', message: data.error || 'AI-sjekk feilet.' };
+		} catch {
+			if (currentTrack?.id === track.id) {
+				aiCheck = { status: 'error', message: 'AI-sjekk feilet.' };
 			}
 		}
 	}
@@ -655,9 +698,14 @@
 												class="text-5xl md:text-6xl font-black"
 												style="font-family: 'Righteous', cursive;"
 											>
-												{currentTrack.releaseYear}
+												{aiYear ?? currentTrack.releaseYear}
 											</p>
 										</div>
+										{#if aiYear !== null && aiYear !== currentTrack.releaseYear}
+											<p class="pt-2 text-sm text-muted-foreground">
+												Spotify: <span class="line-through">{currentTrack.releaseYear}</span>
+											</p>
+										{/if}
 									</div>
 								</div>
 							</div>
@@ -708,6 +756,40 @@
 							</Button>
 						{/if}
 					</div>
+
+					{#if isRevealed}
+						<div class="mt-4 flex flex-col items-center gap-2 text-center max-w-sm">
+							{#if aiCheck.status === 'done'}
+								<p class="text-sm">
+									{#if aiCheck.year === currentTrack.releaseYear}
+										✅ AI bekrefter {aiCheck.year}
+									{:else}
+										🤖 AI: opprinnelig {aiCheck.year}
+									{/if}
+									{#if aiCheck.confidence !== 'high'}
+										<span class="text-muted-foreground">
+											({aiCheck.confidence === 'medium' ? 'ganske sikker' : 'usikker'})
+										</span>
+									{/if}
+								</p>
+								{#if aiCheck.note}
+									<p class="text-xs text-muted-foreground">{aiCheck.note}</p>
+								{/if}
+							{:else}
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={checkYearWithAi}
+									disabled={aiCheck.status === 'loading'}
+								>
+									{aiCheck.status === 'loading' ? '🤖 Sjekker...' : '🤖 Sjekk år med AI'}
+								</Button>
+								{#if aiCheck.status === 'error'}
+									<p class="text-xs text-destructive">{aiCheck.message}</p>
+								{/if}
+							{/if}
+						</div>
+					{/if}
 				</div>
 
 				<!-- Mobile-only bottom buttons -->

@@ -58,7 +58,7 @@ export async function POST(event: RequestEvent) {
 	let attempts = 0;
 	const maxAttempts = 10;
 
-	const fields = 'items(track(id,name,artists(name),album(release_date,images(url)))),total';
+	const fields = 'items(track(id,name,artists(name),album(name,release_date,images(url)))),total';
 
 	while (attempts < maxAttempts) {
 		// Pick random playlist
@@ -175,6 +175,7 @@ export async function POST(event: RequestEvent) {
 				name: randomTrack.name,
 				artists: randomTrack.artists.map((a) => a.name),
 				releaseYear,
+				album: randomTrack.album.name,
 				albumArt
 			}
 		});
@@ -206,6 +207,7 @@ interface SpotifyPlaylistResponse {
 			name: string;
 			artists: Array<{ name: string }>;
 			album: {
+				name: string;
 				release_date: string;
 				images: Array<{ url: string }>;
 			};
